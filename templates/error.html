@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - Sprint Health Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏃 Sprint Health Dashboard</h1>
+        </header>
+
+        <div class="error-card">
+            <div class="error-icon">❌</div>
+            <h2>Something went wrong</h2>
+            <p class="error-message">{{ error }}</p>
+
+            <div class="error-help">
+                <h3>Common issues:</h3>
+                <ul>
+                    <li>Check if <code>config/config.json</code> exists and is properly configured</li>
+                    <li>Verify your Jira API token is valid</li>
+                    <li>Ensure the board ID and project key are correct</li>
+                    <li>Check if there's an active sprint on your board</li>
+                </ul>
+            </div>
+
+            <div class="error-actions">
+                <button onclick="location.reload()" class="btn">🔄 Retry</button>
+                <a href="/api/health" class="btn btn-secondary">View API Response</a>
+            </div>
+        </div>
+
+        <footer>
+            <p>Sprint Health Agent 🤖</p>
+        </footer>
+    </div>
+</body>
+</html>
+

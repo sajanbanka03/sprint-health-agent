@@ -1,0 +1,10 @@
+config/config.json
+__pycache__/
+*.pyc
+.env
+data/sprint_history/*.json
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,65 @@
+{
+    "jira": {
+        "url": "https://your-company.atlassian.net",
+        "auth_method": "basic",
+        "username": "your-email@company.com",
+        "password": "your-password-or-api-token",
+        "project_key": "PROJ",
+        "board_id": 123,
+        "sprint_id": null,
+        "story_point_field": "customfield_10002",
+        "verify_ssl": true
+    },
+    "phases": {
+        "backlog": ["Open", "To Do", "Backlog"],
+        "in_analysis": ["In Analysis", "Refinement", "Analysis"],
+        "in_dev": ["In Development", "In Progress", "Development"],
+        "ready_for_sit": ["Ready for QA", "Dev Complete", "Ready for Testing"],
+        "in_sit": ["In QA", "In Testing", "QA", "Testing"],
+        "in_review": ["In Review", "Code Review", "Review"],
+        "done": ["Done", "Closed", "Resolved"]
+    },
+    "stuck_thresholds_days": {
+        "in_analysis": 2,
+        "in_dev": 2,
+        "ready_for_sit": 2,
+        "in_sit": 2,
+        "in_review": 2
+    },
+    "notifications": {
+        "enabled": false,
+        "platform": "slack",
+        "slack": {
+            "webhook_url": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+            "channel": "#sprint-health"
+        },
+        "teams": {
+            "webhook_url": "https://outlook.office.com/webhook/YOUR_WEBHOOK_URL"
+        },
+        "google_chat": {
+            "webhook_url": "https://chat.googleapis.com/v1/spaces/SPACE_ID/messages?key=KEY&token=TOKEN"
+        }
+    },
+    "thresholds": {
+        "completion_probability_warning": 70,
+        "completion_probability_critical": 50
+    },
+    "wip_limits": {
+        "enabled": false,
+        "in_dev": 5,
+        "in_sit": 4
+    },
+    "historical_sprints": 5,
+    "ml_predictions": {
+        "enabled": true,
+        "monte_carlo_simulations": 1000,
+        "confidence_levels": [50, 75, 90]
+    },
+    "report": {
+        "include_assignee": true,
+        "include_story_points": true,
+        "include_recommendations": true,
+        "max_stuck_items_display": 20
+    }
+}
+

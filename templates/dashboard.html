@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprint Health Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏃 Sprint Health Dashboard</h1>
+            <div class="sprint-info">
+                <span class="sprint-name">{{ report.sprint_info.name }}</span>
+                <span class="sprint-days">Day {{ report.sprint_info.days_elapsed }} of {{ report.sprint_info.total_days }}</span>
+            </div>
+        </header>
+
+        <!-- Health Status Banner -->
+        <div class="health-banner health-{{ report.health_status.value }}">
+            <div class="health-indicator">
+                <span class="health-emoji">{{ report.health_emoji }}</span>
+                <span class="health-text">{{ report.health_status.value | replace('_', ' ') | title }}</span>
+            </div>
+            <div class="probability">
+                {% if report.ml_predictions %}
+                <span class="prob-value">{{ "%.1f" | format(report.ml_predictions.probability_of_completion) }}%</span>
+                <span class="prob-label">ML-Predicted Completion</span>
+                {% else %}
+                <span class="prob-value">{{ "%.1f" | format(report.velocity.completion_probability) }}%</span>
+                <span class="prob-label">Completion Probability</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Metrics Cards -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-icon">📊</div>
+                <div class="metric-value">{{ "%.0f" | format(report.metrics.total_story_points) }}</div>
+                <div class="metric-label">Committed SP</div>
+                <div class="metric-sub">{{ report.metrics.total_issues }} items</div>
+            </div>
+            <div class="metric-card completed">
+                <div class="metric-icon">✅</div>
+                <div class="metric-value">{{ "%.0f" | format(report.metrics.completed_story_points) }}</div>
+                <div class="metric-label">Completed SP</div>
+                <div class="metric-sub">{{ report.metrics.completed_issues }} items</div>
+            </div>
+            <div class="metric-card remaining">
+                <div class="metric-icon">⏳</div>
+                <div class="metric-value">{{ "%.0f" | format(report.metrics.remaining_story_points) }}</div>
+                <div class="metric-label">Remaining SP</div>
+                <div class="metric-sub">{{ report.metrics.remaining_issues }} items</div>
+            </div>
+            <div class="metric-card velocity">
+                <div class="metric-icon">🚀</div>
+                <div class="metric-value">{{ "%.1f" | format(report.velocity.daily_velocity) }}</div>
+                <div class="metric-label">SP/Day Velocity</div>
+                <div class="metric-sub">{{ report.sprint_info.days_remaining }} days left</div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-section">
+            <h2>Sprint Progress</h2>
+            <div class="progress-bar-container">
+                <div class="progress-bar" style="width: {{ report.metrics.completion_percentage_by_points }}%"></div>
+            </div>
+            <div class="progress-labels">
+                <span>0%</span>
+                <span class="progress-current">{{ "%.1f" | format(report.metrics.completion_percentage_by_points) }}%</span>
+                <span>100%</span>
+            </div>
+        </div>
+
+        <!-- ML Predictions Section -->
+        {% if report.ml_predictions %}
+        <div class="card ml-card">
+            <h2>🤖 ML-Powered Predictions</h2>
+            <div class="ml-grid">
+                <div class="ml-stat">
+                    <span class="ml-value risk-{{ report.ml_predictions.risk_level }}">{{ report.ml_predictions.risk_level | upper }}</span>
+                    <span class="ml-label">Risk Level</span>
+                </div>
+                <div class="ml-stat">
+                    <span class="ml-value">{{ "%.0f" | format(report.ml_predictions.predicted_completion_points) }} SP</span>
+                    <span class="ml-label">Predicted Completion</span>
+                </div>
+                <div class="ml-stat">
+                    <span class="ml-value">{{ report.ml_predictions.simulations_run }}</span>
+                    <span class="ml-label">Simulations Run</span>
+                </div>
+            </div>
+            {% if report.ml_predictions.confidence_intervals %}
+            <div class="confidence-intervals">
+                <h3>Confidence Intervals</h3>
+                <div class="ci-bars">
+                    {% for level, value in report.ml_predictions.confidence_intervals.items() %}
+                    <div class="ci-bar">
+                        <span class="ci-label">{{ level }}%</span>
+                        <div class="ci-bar-container">
+                            <div class="ci-bar-fill" style="width: {{ (value / report.metrics.total_story_points * 100) | min(100) }}%"></div>
+                        </div>
+                        <span class="ci-value">{{ "%.0f" | format(value) }} SP</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Charts Section -->
+        {% if report.chart_data %}
+        <div class="charts-section">
+            <div class="chart-container">
+                <h2>📈 Burnup Chart</h2>
+                <canvas id="burnupChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h2>📉 Burndown Chart</h2>
+                <canvas id="burndownChart"></canvas>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Two Column Layout -->
+        <div class="two-columns">
+            <!-- Phase Distribution -->
+            <div class="column">
+                <div class="card">
+                    <h2>📊 Work Distribution by Phase</h2>
+                    <table class="phase-table">
+                        <thead>
+                            <tr>
+                                <th>Phase</th>
+                                <th>Count</th>
+                                <th>Points</th>
+                                <th>%</th>
+                                <th>Stuck</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pm in report.phase_breakdown %}
+                            {% if pm.issue_count > 0 %}
+                            <tr class="{% if pm.stuck_count > 0 %}has-stuck{% endif %}">
+                                <td>{{ pm.phase_display_name }}</td>
+                                <td>{{ pm.issue_count }}</td>
+                                <td>{{ "%.0f" | format(pm.story_points) }}</td>
+                                <td>{{ "%.1f" | format(pm.percentage_of_total) }}%</td>
+                                <td class="stuck-count">
+                                    {% if pm.stuck_count > 0 %}
+                                    <span class="stuck-badge">{{ pm.stuck_count }} ⚠️</span>
+                                    {% else %}
+                                    0
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Stuck Items -->
+            <div class="column">
+                <div class="card stuck-card">
+                    <h2>🚨 Stuck Items ({{ report.stuck_summary.total_stuck_count }})</h2>
+                    {% if report.stuck_summary.total_stuck_count > 0 %}
+                    <table class="stuck-table">
+                        <thead>
+                            <tr>
+                                <th>Key</th>
+                                <th>Summary</th>
+                                <th>Status</th>
+                                <th>Days</th>
+                                <th>Assignee</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for issue in report.stuck_summary.most_critical_items[:10] %}
+                            <tr class="stuck-row priority-{{ issue.days_overdue > 2 and 'high' or 'medium' }}">
+                                <td class="issue-key">{{ issue.key }}</td>
+                                <td class="issue-summary" title="{{ issue.summary }}">
+                                    {{ issue.summary[:30] }}{% if issue.summary|length > 30 %}...{% endif %}
+                                </td>
+                                <td>{{ issue.status }}</td>
+                                <td class="days-stuck">{{ issue.days_in_current_status }}</td>
+                                <td>{{ issue.assignee or 'Unassigned' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="no-stuck">
+                        <span class="success-icon">✅</span>
+                        <p>No stuck items! Great job!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Assessment -->
+        {% if report.risk_assessment and report.risk_assessment.risk_factors %}
+        <div class="card risk-card">
+            <h2>⚠️ Risk Assessment (Score: {{ "%.0f" | format(report.risk_assessment.overall_risk_score) }}/100)</h2>
+            <div class="risk-level risk-{{ report.risk_assessment.risk_level }}">{{ report.risk_assessment.risk_level | upper }}</div>
+            <table class="risk-table">
+                <thead>
+                    <tr>
+                        <th>Issue</th>
+                        <th>Risk Score</th>
+                        <th>Risk Factors</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rf in report.risk_assessment.risk_factors[:5] %}
+                    <tr>
+                        <td class="issue-key">{{ rf.issue_key }}</td>
+                        <td class="risk-score">{{ rf.risk_score }}</td>
+                        <td>
+                            <ul class="risk-list">
+                                {% for r in rf.risks %}
+                                <li>{{ r }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Custom Metrics -->
+        {% if report.custom_metrics %}
+        <div class="card metrics-card">
+            <h2>📏 Custom Metrics</h2>
+            <div class="custom-metrics-grid">
+                {% for m in report.custom_metrics[:8] %}
+                <div class="custom-metric status-{{ m.threshold_status or 'info' }}">
+                    <span class="metric-name">{{ m.name | replace('_', ' ') | title }}</span>
+                    <span class="metric-value">{{ m.display_value }}</span>
+                    <span class="metric-status">
+                        {% if m.threshold_status == 'good' %}✅{% elif m.threshold_status == 'warning' %}⚠️{% elif m.threshold_status == 'critical' %}🔴{% else %}ℹ️{% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recommendations -->
+        {% if report.recommendations %}
+        <div class="card recommendations-card">
+            <h2>💡 Recommendations</h2>
+            <ul class="recommendations-list">
+                {% for rec in report.recommendations[:5] %}
+                <li class="recommendation priority-{{ rec.priority }}">
+                    <span class="priority-indicator priority-{{ rec.priority }}">
+                        {% if rec.priority == 'high' %}🔴{% elif rec.priority == 'medium' %}🟡{% else %}🟢{% endif %}
+                    </span>
+                    <span class="rec-message">{{ rec.message }}</span>
+                    <span class="rec-category">{{ rec.category }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <footer>
+            <p>Generated at {{ report.generated_at.strftime('%Y-%m-%d %H:%M') }} | Sprint Health Agent 🤖</p>
+            <button onclick="location.reload()" class="refresh-btn">🔄 Refresh</button>
+        </footer>
+    </div>
+
+    {% if report.chart_data %}
+    <script>
+        // Chart.js configuration
+        const chartData = {{ report.chart_data | tojson | safe }};
+
+        // Burnup Chart
+        const burnupCtx = document.getElementById('burnupChart').getContext('2d');
+        new Chart(burnupCtx, {
+            type: 'line',
+            data: {
+                labels: chartData.data_points.map(d => 'Day ' + d.day_number),
+                datasets: [
+                    {
+                        label: 'Completed',
+                        data: chartData.data_points.map(d => d.completed_points),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Total Scope',
+                        data: chartData.data_points.map(d => d.total_scope),
+                        borderColor: '#6366f1',
+                        borderDash: [5, 5],
+                        fill: false
+                    },
+                    {
+                        label: 'Ideal',
+                        data: chartData.data_points.map(d => d.ideal_completed),
+                        borderColor: '#94a3b8',
+                        borderDash: [2, 2],
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Story Points' } }
+                }
+            }
+        });
+
+        // Burndown Chart
+        const burndownCtx = document.getElementById('burndownChart').getContext('2d');
+        new Chart(burndownCtx, {
+            type: 'line',
+            data: {
+                labels: chartData.data_points.map(d => 'Day ' + d.day_number),
+                datasets: [
+                    {
+                        label: 'Remaining',
+                        data: chartData.data_points.map(d => d.remaining_points),
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Ideal',
+                        data: chartData.data_points.map(d => d.ideal_remaining),
+                        borderColor: '#94a3b8',
+                        borderDash: [2, 2],
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Remaining Story Points' } }
+                }
+            }
+        });
+    </script>
+    {% endif %}
+
+    <script>
+        // Auto-refresh every 5 minutes
+        setTimeout(function() {
+            location.reload();
+        }, 300000);
+    </script>
+</body>
+</html>
+
