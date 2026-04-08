@@ -287,146 +287,6 @@ def export_html(ctx, output):
 
 
 @cli.command()
-@click.option('--team', '-t', default=None, help='Analyze specific team by name')
-@click.pass_context
-def analyze_all(ctx, team):
-    """Analyze all teams configured in config.json"""
-    try:
-        config = load_config(ctx.obj.get('config_path'))
-        teams = config.get('teams', [])
-
-        if not teams:
-            console.print("[yellow]No teams configured. Add 'teams' array to config.json[/yellow]")
-            console.print("Example:")
-            console.print('[cyan]"teams": [{"name": "Team A", "board_id": 123, "sprint_id": 456}][/cyan]')
-            sys.exit(1)
-
-        # Filter by team name if specified
-        if team:
-            teams = [t for t in teams if t['name'].lower() == team.lower()]
-            if not teams:
-                console.print(f"[red]Team '{team}' not found in config[/red]")
-                sys.exit(1)
-
-        console.print(f"\n[bold blue]🏃 Analyzing {len(teams)} team(s)...[/bold blue]\n")
-
-        notifier = NotificationService(config)
-
-        for t in teams:
-            console.print(f"\n[bold cyan]{'='*60}[/bold cyan]")
-            console.print(f"[bold cyan]Team: {t['name']}[/bold cyan]")
-            console.print(f"[bold cyan]{'='*60}[/bold cyan]")
-
-            try:
-                # Create team-specific config
-                team_config = config.copy()
-                team_config['jira'] = config['jira'].copy()
-                team_config['jira']['board_id'] = t['board_id']
-                if t.get('sprint_id'):
-                    team_config['jira']['sprint_id'] = t['sprint_id']
-                else:
-                    team_config['jira'].pop('sprint_id', None)
-
-                jira = JiraClient(team_config)
-                analyzer = SprintAnalyzer(team_config, jira)
-                report = analyzer.analyze_sprint()
-
-                # Display console output
-                notifier.send_to_console(report)
-
-            except Exception as e:
-                console.print(f"[red]❌ Error analyzing {t['name']}: {e}[/red]")
-
-        console.print(f"\n[green]✓ Analysis complete for {len(teams)} team(s)[/green]")
-
-    except Exception as e:
-        console.print(f"[red]❌ Error: {e}[/red]")
-        sys.exit(1)
-
-
-@cli.command()
-@click.option('--combined/--separate', default=True, help='Generate combined report (default) or separate files')
-@click.pass_context
-def export_all(ctx, combined):
-    """Export HTML reports for all teams"""
-    try:
-        config = load_config(ctx.obj.get('config_path'))
-        teams = config.get('teams', [])
-
-        if not teams:
-            console.print("[yellow]No teams configured. Add 'teams' array to config.json[/yellow]")
-            sys.exit(1)
-
-        console.print(f"\n[bold blue]📄 Generating reports for {len(teams)} teams...[/bold blue]\n")
-
-        team_reports = []
-        individual_files = []
-
-        for t in teams:
-            console.print(f"  Analyzing [cyan]{t['name']}[/cyan]...", end=" ")
-
-            try:
-                # Create team-specific config
-                team_config = config.copy()
-                team_config['jira'] = config['jira'].copy()
-                team_config['jira']['board_id'] = t['board_id']
-                if t.get('sprint_id'):
-                    team_config['jira']['sprint_id'] = t['sprint_id']
-                else:
-                    team_config['jira'].pop('sprint_id', None)
-
-                jira = JiraClient(team_config)
-                analyzer = SprintAnalyzer(team_config, jira)
-                report = analyzer.analyze_sprint()
-
-                team_reports.append({
-                    'name': t['name'],
-                    'report': report
-                })
-
-                # Generate individual report
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-                safe_name = t['name'].replace(' ', '_')
-                individual_path = export_html_report(
-                    report,
-                    f"reports/{safe_name}_{timestamp}.html"
-                )
-                individual_files.append(individual_path)
-
-                console.print(f"[green]✓[/green]")
-
-            except Exception as e:
-                console.print(f"[red]✗ Error: {e}[/red]")
-
-        if team_reports:
-            # Generate combined report
-            combined_path = export_multi_team_html_report(team_reports)
-
-            console.print(f"\n[bold green]✓ Reports generated:[/bold green]")
-            console.print(f"\n  [bold]Combined report:[/bold]")
-            console.print(f"    {combined_path}")
-            console.print(f"\n  [bold]Individual reports:[/bold]")
-            for f in individual_files:
-                console.print(f"    {f}")
-
-            # Open combined report in browser
-            import webbrowser
-            try:
-                webbrowser.open(f'file:///{combined_path}')
-                console.print("\n[dim]Opening combined report in browser...[/dim]")
-            except:
-                pass
-        else:
-            console.print("[red]No reports generated[/red]")
-
-    except Exception as e:
-        console.print(f"[red]❌ Error: {e}[/red]")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
-
-@cli.command()
 @click.pass_context
 def list_metrics(ctx):
     """List all available custom metrics"""
@@ -703,7 +563,7 @@ def debug_fields(ctx, issue):
 @click.option('--html', is_flag=True, help='Export demo report as HTML')
 @click.option('--multi-team', is_flag=True, help='Generate demo with multiple teams')
 @click.pass_context
-def demo(ctx, html, multi_team):
+def demo(ctx, html, multi-team):
     """Run a demo with sample data (no Jira connection required)"""
     from datetime import date, timedelta
     from .models import (
@@ -715,220 +575,193 @@ def demo(ctx, html, multi_team):
     from .charts import ChartGenerator, ChartDataPoint, ChartData
     from .custom_metrics import MetricsEngine
 
-    def create_demo_report(team_name="Demo Team", sprint_name="Sprint 47",
-                           completion_pct=62, stuck_count=3, health=HealthStatus.AT_RISK):
-        """Create a demo report with customizable parameters"""
-        sprint_info = SprintInfo(
-            id=123,
-            name=f"{sprint_name} - {team_name}",
-            state="active",
-            start_date=date.today() - timedelta(days=7),
-            end_date=date.today() + timedelta(days=3),
-            goal=f"Complete sprint goals for {team_name}"
-        )
+    console.print("\n[bold blue]🎭 Running Demo with Sample Data + ML Predictions[/bold blue]\n")
 
-        # Sample issues with varied data
-        import random
-        base_issues = [
-            ("Implement payment gateway SDK", "Done", Phase.DONE, "John", 8, False, 0),
-            ("Add retry logic for failed payments", "In Dev", Phase.IN_DEV, "Sarah", 5, True, 4),
-            ("Payment confirmation email", "In SIT", Phase.IN_SIT, "Mike", 3, True, 5),
-            ("Fix currency conversion bug", "Ready for SIT", Phase.READY_FOR_SIT, "Lisa", 2, True, 3),
-            ("Update API documentation", "In TPO Review", Phase.IN_TPO_REVIEW, "John", 2, False, 1),
-            ("Refund flow implementation", "In Analysis", Phase.IN_ANALYSIS, None, 5, False, 2),
+    # Create sample data
+    sprint_info = SprintInfo(
+        id=123,
+        name="Sprint 47 - Payment Integration",
+        state="active",
+        start_date=date.today() - timedelta(days=7),
+        end_date=date.today() + timedelta(days=3),
+        goal="Complete payment gateway integration and fix critical bugs"
+    )
+
+    # Sample issues
+    issues = [
+        SprintIssue(key="PAY-101", summary="Implement payment gateway SDK", status="Done",
+                   phase=Phase.DONE, assignee="John", assignee_email=None, story_points=8,
+                   issue_type="Story", priority="High", created_date=datetime.now(),
+                   updated_date=datetime.now(), status_change_date=datetime.now(),
+                   days_in_current_status=0, is_stuck=False),
+        SprintIssue(key="PAY-102", summary="Add retry logic for failed payments", status="In Dev",
+                   phase=Phase.IN_DEV, assignee="Sarah", assignee_email=None, story_points=5,
+                   issue_type="Story", priority="High", created_date=datetime.now(),
+                   updated_date=datetime.now(), status_change_date=datetime.now() - timedelta(days=4),
+                   days_in_current_status=4, is_stuck=True, stuck_threshold=2),
+        SprintIssue(key="PAY-103", summary="Payment confirmation email", status="In SIT",
+                   phase=Phase.IN_SIT, assignee="Mike", assignee_email=None, story_points=3,
+                   issue_type="Story", priority="Medium", created_date=datetime.now(),
+                   updated_date=datetime.now(), status_change_date=datetime.now() - timedelta(days=5),
+                   days_in_current_status=5, is_stuck=True, stuck_threshold=2),
+        SprintIssue(key="PAY-104", summary="Fix currency conversion bug", status="Ready for SIT",
+                   phase=Phase.READY_FOR_SIT, assignee="Lisa", assignee_email=None, story_points=2,
+                   issue_type="Bug", priority="High", created_date=datetime.now(),
+                   updated_date=datetime.now(), status_change_date=datetime.now() - timedelta(days=3),
+                   days_in_current_status=3, is_stuck=True, stuck_threshold=2),
+        SprintIssue(key="PAY-105", summary="Update API documentation", status="In TPO Review",
+                   phase=Phase.IN_TPO_REVIEW, assignee="John", assignee_email=None, story_points=2,
+                   issue_type="Task", priority="Low", created_date=datetime.now(),
+                   updated_date=datetime.now(), status_change_date=datetime.now() - timedelta(days=1),
+                   days_in_current_status=1, is_stuck=False),
+        SprintIssue(key="PAY-106", summary="Refund flow implementation", status="In Analysis",
+                   phase=Phase.IN_ANALYSIS, assignee=None, assignee_email=None, story_points=5,
+                   issue_type="Story", priority="Medium", created_date=datetime.now(),
+                   updated_date=datetime.now(), status_change_date=datetime.now() - timedelta(days=2),
+                   days_in_current_status=2, is_stuck=False),
+    ]
+
+    metrics = SprintMetrics(
+        total_issues=6, total_story_points=25,
+        completed_issues=1, completed_story_points=8,
+        remaining_issues=5, remaining_story_points=17
+    )
+
+    velocity = VelocityMetrics(
+        daily_velocity=1.14, required_velocity=5.67,
+        completion_probability=68.5, predicted_completion_points=11.4,
+        shortfall_points=13.6
+    )
+
+    stuck_issues = [i for i in issues if i.is_stuck]
+    stuck_summary = StuckSummary(
+        total_stuck_count=3, total_stuck_points=10,
+        stuck_by_phase={
+            Phase.IN_DEV: [i for i in stuck_issues if i.phase == Phase.IN_DEV],
+            Phase.READY_FOR_SIT: [i for i in stuck_issues if i.phase == Phase.READY_FOR_SIT],
+            Phase.IN_SIT: [i for i in stuck_issues if i.phase == Phase.IN_SIT]
+        },
+        most_critical_items=sorted(stuck_issues, key=lambda x: x.days_in_current_status, reverse=True)
+    )
+
+    phase_breakdown = [
+        PhaseMetrics(Phase.IN_ANALYSIS, "In Analysis", 1, 5, 16.7, 0, []),
+        PhaseMetrics(Phase.IN_DEV, "In Development", 1, 5, 16.7, 1, [issues[1]]),
+        PhaseMetrics(Phase.READY_FOR_SIT, "Ready for SIT", 1, 2, 16.7, 1, [issues[3]]),
+        PhaseMetrics(Phase.IN_SIT, "In SIT", 1, 3, 16.7, 1, [issues[2]]),
+        PhaseMetrics(Phase.IN_TPO_REVIEW, "In TPO Review", 1, 2, 16.7, 0, []),
+        PhaseMetrics(Phase.DONE, "Done", 1, 8, 16.7, 0, []),
+    ]
+
+    recommendations = [
+        Recommendation("high", "ml_risk", "🔴 3 items are stuck - consider daily standups focused on unblocking", ["PAY-102", "PAY-103", "PAY-104"]),
+        Recommendation("high", "ml_prediction", "Monte Carlo simulation (1000 runs) shows only 62% completion probability", []),
+        Recommendation("high", "stuck_item", "PAY-103 has been stuck in In SIT for 5 days - needs immediate attention", ["PAY-103"]),
+        Recommendation("medium", "velocity", "Current velocity (1.14 SP/day) suggests 13.6 SP shortfall", []),
+        Recommendation("medium", "custom_metric", "Unassigned Work Items: 1 - Number of active items without assignee", []),
+    ]
+
+    # Create ML predictions (sample)
+    ml_predictions = MonteCarloResult(
+        simulations_run=1000,
+        predicted_completion_points=19.5,
+        confidence_intervals={50: 20.0, 75: 17.5, 90: 14.0},
+        probability_of_completion=62.3,
+        risk_level="high",
+        likely_completion_date=date.today() + timedelta(days=5),
+        forecast_details={
+            'average_velocity': 22.5,
+            'velocity_std_dev': 4.2,
+            'days_remaining': 3,
+            'remaining_work': 17,
+            'simulations': 1000
+        }
+    )
+
+    # Create velocity trend (sample)
+    velocity_trend = VelocityTrend(
+        sprints_analyzed=5,
+        average_velocity=22.5,
+        median_velocity=23.0,
+        std_deviation=4.2,
+        velocity_trend="stable",
+        trend_percentage=-2.5,
+        historical_data=[
+            {'sprint_name': 'Sprint 46', 'completed_points': 24},
+            {'sprint_name': 'Sprint 45', 'completed_points': 21},
+            {'sprint_name': 'Sprint 44', 'completed_points': 25},
+            {'sprint_name': 'Sprint 43', 'completed_points': 20},
+            {'sprint_name': 'Sprint 42', 'completed_points': 22.5},
         ]
+    )
 
-        issues = []
-        for i, (summary, status, phase, assignee, sp, stuck, days) in enumerate(base_issues):
-            prefix = team_name.split()[0].upper()[:3]
-            issues.append(SprintIssue(
-                key=f"{prefix}-{100+i}",
-                summary=summary,
-                status=status,
-                phase=phase,
-                assignee=assignee,
-                assignee_email=None,
-                story_points=sp,
-                issue_type="Story" if i < 4 else "Bug" if i == 3 else "Task",
-                priority="High" if stuck else "Medium",
-                created_date=datetime.now(),
-                updated_date=datetime.now(),
-                status_change_date=datetime.now() - timedelta(days=days),
-                days_in_current_status=days,
-                is_stuck=stuck,
-                stuck_threshold=2
-            ))
-
-        total_sp = sum(i.story_points for i in issues)
-        done_sp = sum(i.story_points for i in issues if i.phase == Phase.DONE)
-
-        metrics = SprintMetrics(
-            total_issues=len(issues),
-            total_story_points=total_sp,
-            completed_issues=len([i for i in issues if i.phase == Phase.DONE]),
-            completed_story_points=done_sp,
-            remaining_issues=len([i for i in issues if i.phase != Phase.DONE]),
-            remaining_story_points=total_sp - done_sp
-        )
-
-        velocity = VelocityMetrics(
-            daily_velocity=done_sp / 7 if done_sp > 0 else 1.0,
-            required_velocity=5.67,
-            completion_probability=completion_pct,
-            predicted_completion_points=done_sp + 3,
-            shortfall_points=total_sp - done_sp - 3
-        )
-
-        stuck_issues = [i for i in issues if i.is_stuck]
-        stuck_summary = StuckSummary(
-            total_stuck_count=len(stuck_issues),
-            total_stuck_points=sum(i.story_points for i in stuck_issues),
-            stuck_by_phase={
-                Phase.IN_DEV: [i for i in stuck_issues if i.phase == Phase.IN_DEV],
-                Phase.READY_FOR_SIT: [i for i in stuck_issues if i.phase == Phase.READY_FOR_SIT],
-                Phase.IN_SIT: [i for i in stuck_issues if i.phase == Phase.IN_SIT]
-            },
-            most_critical_items=sorted(stuck_issues, key=lambda x: x.days_in_current_status, reverse=True)
-        )
-
-        phase_breakdown = [
-            PhaseMetrics(Phase.IN_ANALYSIS, "In Analysis", 1, 5, 16.7, 0, []),
-            PhaseMetrics(Phase.IN_DEV, "In Development", 1, 5, 16.7, 1, [issues[1]] if len(issues) > 1 else []),
-            PhaseMetrics(Phase.READY_FOR_SIT, "Ready for SIT", 1, 2, 16.7, 1, [issues[3]] if len(issues) > 3 else []),
-            PhaseMetrics(Phase.IN_SIT, "In SIT", 1, 3, 16.7, 1, [issues[2]] if len(issues) > 2 else []),
-            PhaseMetrics(Phase.IN_TPO_REVIEW, "In TPO Review", 1, 2, 16.7, 0, []),
-            PhaseMetrics(Phase.DONE, "Done", 1, 8, 16.7, 0, []),
+    # Create risk assessment (sample)
+    risk_assessment = RiskAssessment(
+        overall_risk_score=45.5,
+        risk_level="high",
+        risk_factors=[
+            {'issue_key': 'PAY-103', 'summary': 'Payment confirmation email', 'risk_score': 65,
+             'risks': ['Stuck for 5 days', 'In SIT with only 3 days remaining']},
+            {'issue_key': 'PAY-106', 'summary': 'Refund flow implementation', 'risk_score': 55,
+             'risks': ['Large story (5 SP) still in in_analysis', 'Unassigned work item']},
+            {'issue_key': 'PAY-102', 'summary': 'Add retry logic', 'risk_score': 40,
+             'risks': ['Stuck for 4 days']},
+        ],
+        at_risk_items=['PAY-103', 'PAY-106', 'PAY-102'],
+        recommendations=[
+            '🔴 3 items are stuck - consider daily standups focused on unblocking',
+            '⚠️ 1 large stories at risk - consider splitting or pairing',
+            '👤 1 items have no assignee - assign immediately'
         ]
+    )
 
-        recommendations = [
-            Recommendation("high", "ml_risk", f"🔴 {len(stuck_issues)} items stuck - focus on unblocking", [i.key for i in stuck_issues]),
-            Recommendation("high", "ml_prediction", f"Monte Carlo shows {completion_pct}% completion probability", []),
-            Recommendation("medium", "velocity", f"Current velocity suggests shortfall", []),
-        ]
+    # Create chart data (sample)
+    chart_data = ChartData(
+        sprint_name="Sprint 47",
+        start_date=(date.today() - timedelta(days=7)).isoformat(),
+        end_date=(date.today() + timedelta(days=3)).isoformat(),
+        total_days=10,
+        data_points=[
+            ChartDataPoint(date=(date.today() - timedelta(days=7+i)).isoformat(), day_number=i,
+                          completed_points=min(i * 1.2, 8), remaining_points=25 - min(i * 1.2, 8),
+                          total_scope=25, ideal_remaining=25 - (i * 2.5), ideal_completed=i * 2.5)
+            for i in range(8)
+        ],
+        scope_changes=[],
+        current_day=7,
+        chart_type="both"
+    )
 
-        ml_predictions = MonteCarloResult(
-            simulations_run=1000,
-            predicted_completion_points=19.5,
-            confidence_intervals={50: 20.0, 75: 17.5, 90: 14.0},
-            probability_of_completion=completion_pct,
-            risk_level="high" if completion_pct < 70 else "medium",
-            likely_completion_date=date.today() + timedelta(days=5),
-            forecast_details={'simulations': 1000}
-        )
+    # Calculate custom metrics
+    config = {'thresholds': {}, 'stuck_thresholds_days': {}, 'wip_limits': {'enabled': False}}
+    metrics_engine = MetricsEngine(config)
+    custom_metrics = metrics_engine.calculate_all(issues, sprint_info, metrics)
 
-        velocity_trend = VelocityTrend(
-            sprints_analyzed=5, average_velocity=22.5, median_velocity=23.0,
-            std_deviation=4.2, velocity_trend="stable", trend_percentage=-2.5,
-            historical_data=[]
-        )
+    report = SprintHealthReport(
+        generated_at=datetime.now(),
+        sprint_info=sprint_info,
+        metrics=metrics,
+        velocity=velocity,
+        phase_breakdown=phase_breakdown,
+        stuck_summary=stuck_summary,
+        health_status=HealthStatus.AT_RISK,
+        recommendations=recommendations,
+        all_issues=issues
+    )
 
-        risk_assessment = RiskAssessment(
-            overall_risk_score=45.5, risk_level="high",
-            risk_factors=[{'issue_key': i.key, 'summary': i.summary, 'risk_score': 50, 'risks': ['Stuck']} for i in stuck_issues[:3]],
-            at_risk_items=[i.key for i in stuck_issues],
-            recommendations=[]
-        )
+    # Attach extended data
+    report.ml_predictions = ml_predictions
+    report.velocity_trend = velocity_trend
+    report.risk_assessment = risk_assessment
+    report.chart_data = chart_data
+    report.custom_metrics = custom_metrics
 
-        chart_data = ChartData(
-            sprint_name=sprint_name, start_date=(date.today() - timedelta(days=7)).isoformat(),
-            end_date=(date.today() + timedelta(days=3)).isoformat(), total_days=10,
-            data_points=[
-                ChartDataPoint(date=(date.today() - timedelta(days=7-i)).isoformat(), day_number=i,
-                              completed_points=min(i * 1.2, 8), remaining_points=25 - min(i * 1.2, 8),
-                              total_scope=25, ideal_remaining=25 - (i * 2.5), ideal_completed=i * 2.5)
-                for i in range(8)
-            ],
-            scope_changes=[], current_day=7, chart_type="both"
-        )
+    # Display using console notifier
+    from .notifier import ConsoleNotifier
+    notifier = ConsoleNotifier(config)
+    notifier.send(report)
 
-        config = {'thresholds': {}, 'stuck_thresholds_days': {}, 'wip_limits': {'enabled': False}}
-        metrics_engine = MetricsEngine(config)
-        custom_metrics = metrics_engine.calculate_all(issues, sprint_info, metrics)
-
-        report = SprintHealthReport(
-            generated_at=datetime.now(),
-            sprint_info=sprint_info, metrics=metrics, velocity=velocity,
-            phase_breakdown=phase_breakdown, stuck_summary=stuck_summary,
-            health_status=health, recommendations=recommendations, all_issues=issues
-        )
-
-        report.ml_predictions = ml_predictions
-        report.velocity_trend = velocity_trend
-        report.risk_assessment = risk_assessment
-        report.chart_data = chart_data
-        report.custom_metrics = custom_metrics
-
-        return report
-
-    if multi_team:
-        console.print("\n[bold blue]🎭 Running Multi-Team Demo[/bold blue]\n")
-
-        # Create 4 demo teams with different health statuses
-        demo_teams = [
-            {"name": "Team Thunder", "sprint": "Sprint 47", "completion": 85, "stuck": 1, "health": HealthStatus.HEALTHY},
-            {"name": "Team Lightning", "sprint": "Sprint 47", "completion": 62, "stuck": 3, "health": HealthStatus.AT_RISK},
-            {"name": "Team Storm", "sprint": "Sprint 47", "completion": 45, "stuck": 5, "health": HealthStatus.CRITICAL},
-            {"name": "Team Rain", "sprint": "Sprint 47", "completion": 78, "stuck": 2, "health": HealthStatus.AT_RISK},
-        ]
-
-        team_reports = []
-        for t in demo_teams:
-            console.print(f"  Creating demo for [cyan]{t['name']}[/cyan]...")
-            report = create_demo_report(
-                team_name=t['name'],
-                sprint_name=t['sprint'],
-                completion_pct=t['completion'],
-                stuck_count=t['stuck'],
-                health=t['health']
-            )
-            team_reports.append({"name": t['name'], "report": report})
-
-        if html:
-            # Export combined HTML
-            combined_path = export_multi_team_html_report(team_reports)
-            console.print(f"\n[green]✓ Multi-team demo report saved to: {combined_path}[/green]")
-
-            import webbrowser
-            try:
-                webbrowser.open(f'file:///{combined_path}')
-                console.print("[dim]Opening in browser...[/dim]")
-            except:
-                pass
-        else:
-            # Console output for each team
-            from .notifier import ConsoleNotifier
-            config = {'thresholds': {}, 'stuck_thresholds_days': {}, 'wip_limits': {'enabled': False}}
-            notifier = ConsoleNotifier(config)
-            for tr in team_reports:
-                console.print(f"\n[bold cyan]{'='*60}[/bold cyan]")
-                console.print(f"[bold cyan]{tr['name']}[/bold cyan]")
-                console.print(f"[bold cyan]{'='*60}[/bold cyan]")
-                notifier.send(tr['report'])
-
-    else:
-        console.print("\n[bold blue]🎭 Running Demo with Sample Data + ML Predictions[/bold blue]\n")
-
-        report = create_demo_report()
-
-        if html:
-            # Export HTML
-            output_path = export_html_report(report)
-            console.print(f"\n[green]✓ Demo report saved to: {output_path}[/green]")
-
-            import webbrowser
-            try:
-                webbrowser.open(f'file:///{output_path}')
-                console.print("[dim]Opening in browser...[/dim]")
-            except:
-                pass
-        else:
-            # Console output
-            from .notifier import ConsoleNotifier
-            config = {'thresholds': {}, 'stuck_thresholds_days': {}, 'wip_limits': {'enabled': False}}
-            notifier = ConsoleNotifier(config)
-            notifier.send(report)
-
-    console.print("\n[dim]This was demo data. No Jira connection required.[/dim]")
+    console.print("\n[dim]This was demo data with ML predictions. Configure config/config.json to connect to your Jira.[/dim]")
 
 
 def main():

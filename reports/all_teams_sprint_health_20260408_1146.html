@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>All Teams - Sprint Health Report</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: white; padding: 30px; border-radius: 8px; margin-bottom: 20px; }
+        .header h1 { margin: 0 0 10px 0; }
+        .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 20px; }
+        .summary-card { background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .summary-value { font-size: 2em; font-weight: bold; }
+        .summary-label { color: #6b7280; font-size: 0.9em; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 0; background: white; padding: 10px 10px 0; border-radius: 8px 8px 0 0; }
+        .tab { padding: 12px 24px; cursor: pointer; border: none; background: #e5e7eb; border-radius: 8px 8px 0 0; font-size: 1em; }
+        .tab.active { background: #2563eb; color: white; }
+        .tab-content { display: none; background: white; padding: 20px; border-radius: 0 0 8px 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tab-content.active { display: block; }
+        .team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #e5e7eb; }
+        .health-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; color: white; font-weight: bold; }
+        .health-healthy { background: #10b981; }
+        .health-at_risk { background: #f59e0b; }
+        .health-critical { background: #ef4444; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .metric { text-align: center; padding: 15px; background: #f9fafb; border-radius: 8px; }
+        .metric-value { font-size: 1.8em; font-weight: bold; color: #1f2937; }
+        .metric-label { color: #6b7280; font-size: 0.85em; }
+        .progress-bar { background: #e5e7eb; height: 16px; border-radius: 8px; overflow: hidden; margin: 15px 0; }
+        .progress-fill { background: linear-gradient(90deg, #2563eb, #10b981); height: 100%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f9fafb; font-weight: 600; }
+        .stuck { color: #ef4444; font-weight: bold; }
+        .warning { background: #fef3c7; }
+        .section { margin-top: 20px; }
+        .section h3 { margin-bottom: 10px; color: #1f2937; }
+        .rec-high { border-left: 3px solid #ef4444; padding-left: 10px; margin: 5px 0; background: #fee2e2; padding: 8px; border-radius: 0 4px 4px 0; }
+        .rec-medium { border-left: 3px solid #f59e0b; padding-left: 10px; margin: 5px 0; background: #fef3c7; padding: 8px; border-radius: 0 4px 4px 0; }
+        .footer { text-align: center; color: #6b7280; padding: 20px; }
+        .team-comparison { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏃 All Teams - Sprint Health Report</h1>
+            <div>Generated: 2026-04-08 11:46</div>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-value">4</div>
+                <div class="summary-label">Teams</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-value">100</div>
+                <div class="summary-label">Total Committed SP</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-value" style="color: #10b981;">32</div>
+                <div class="summary-label">Total Completed SP</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-value" style="color: #ef4444;">12</div>
+                <div class="summary-label">Total Stuck Items</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-value" style="color: #2563eb;">68%</div>
+                <div class="summary-label">Avg Completion Prob</div>
+            </div>
+        </div>
+
+        <div class="team-comparison">
+            <h2>📊 Team Comparison</h2>
+            <table>
+                <tr>
+                    <th>Team</th>
+                    <th>Sprint</th>
+                    <th>Committed</th>
+                    <th>Completed</th>
+                    <th>Progress</th>
+                    <th>Probability</th>
+                    <th>Stuck</th>
+                    <th>Status</th>
+                </tr>
+
+                <tr>
+                    <td><strong>Team Thunder</strong></td>
+                    <td>Sprint 47 - Team Thunder</td>
+                    <td>25 SP</td>
+                    <td>8 SP</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="flex: 1; background: #e5e7eb; height: 8px; border-radius: 4px;">
+                                <div style="background: #2563eb; height: 100%; width: 32.0%; border-radius: 4px;"></div>
+                            </div>
+                            <span>32%</span>
+                        </div>
+                    </td>
+                    <td>85%</td>
+                    <td class="stuck">3</td>
+                    <td><span class="health-badge health-healthy">HEALTHY</span></td>
+                </tr>
+
+                <tr>
+                    <td><strong>Team Lightning</strong></td>
+                    <td>Sprint 47 - Team Lightning</td>
+                    <td>25 SP</td>
+                    <td>8 SP</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="flex: 1; background: #e5e7eb; height: 8px; border-radius: 4px;">
+                                <div style="background: #2563eb; height: 100%; width: 32.0%; border-radius: 4px;"></div>
+                            </div>
+                            <span>32%</span>
+                        </div>
+                    </td>
+                    <td>62%</td>
+                    <td class="stuck">3</td>
+                    <td><span class="health-badge health-at_risk">AT RISK</span></td>
+                </tr>
+
+                <tr>
+                    <td><strong>Team Storm</strong></td>
+                    <td>Sprint 47 - Team Storm</td>
+                    <td>25 SP</td>
+                    <td>8 SP</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="flex: 1; background: #e5e7eb; height: 8px; border-radius: 4px;">
+                                <div style="background: #2563eb; height: 100%; width: 32.0%; border-radius: 4px;"></div>
+                            </div>
+                            <span>32%</span>
+                        </div>
+                    </td>
+                    <td>45%</td>
+                    <td class="stuck">3</td>
+                    <td><span class="health-badge health-critical">CRITICAL</span></td>
+                </tr>
+
+                <tr>
+                    <td><strong>Team Rain</strong></td>
+                    <td>Sprint 47 - Team Rain</td>
+                    <td>25 SP</td>
+                    <td>8 SP</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="flex: 1; background: #e5e7eb; height: 8px; border-radius: 4px;">
+                                <div style="background: #2563eb; height: 100%; width: 32.0%; border-radius: 4px;"></div>
+                            </div>
+                            <span>32%</span>
+                        </div>
+                    </td>
+                    <td>78%</td>
+                    <td class="stuck">3</td>
+                    <td><span class="health-badge health-at_risk">AT RISK</span></td>
+                </tr>
+
+            </table>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab(0)">Team Thunder</button>
+            <button class="tab " onclick="showTab(1)">Team Lightning</button>
+            <button class="tab " onclick="showTab(2)">Team Storm</button>
+            <button class="tab " onclick="showTab(3)">Team Rain</button>
+        </div>
+
+        <div class="tab-content active" id="tab-0">
+            <div class="team-header">
+                <div>
+                    <h2>Team Thunder</h2>
+                    <div>Sprint 47 - Team Thunder - Day 8 of 11</div>
+                </div>
+                <span class="health-badge health-healthy">85% Completion</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="metric-value">25</div>
+                    <div class="metric-label">Committed SP</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" style="color: #10b981;">8</div>
+                    <div class="metric-label">Completed SP</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" style="color: #f59e0b;">17</div>
+                    <div class="metric-label">Remaining SP</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" style="color: #2563eb;">1.1</div>
+                    <div class="metric-label">SP/Day</div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 32.0%;"></div>
+            </div>
+            <div style="text-align: center; color: #6b7280;">Progress: 32.0%</div>
+
+            <div class="section">
+                <h3>📊 Phase Distribution</h3>
+                <table>
+                    <tr><th>Phase</th><th>Count</th><th>SP</th><th>Stuck</th></tr>
+                    <tr class=""><td>In Analysis</td><td>1</td><td>5</td><td>0</td></tr>
+                    <tr class="warning"><td>In Development</td><td>1</td><td>5</td><td><span class="stuck">1 ⚠️</span></td></tr>
+                    <tr class="warning"><td>Ready for SIT</td><td>1</td><td>2</td><td><span class="stuck">1 ⚠️</span></td></tr>
+                    <tr class="warning"><td>In SIT</td><td>1</td><td>3</td><td><span class="stuck">1 ⚠️</span></td></tr>
+                    <tr class=""><td>In TPO Review</td><td>1</td><td>2</td><td>0</td></tr>
+                    <tr class=""><td>Done</td><td>1</td><td>8</td><td>0</td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <h3>🚨 Stuck Items (3)</h3>
+                <table>
+                    <tr><th>Key</th><th>Summary</th><th>Status</th><th>Days</th><th>Assignee</th></tr>
+                    <tr><td><strong>TEA-102</strong></td><td>Payment confirmation email</td><td>In SIT</td><td class="stuck">5</td><td>Mike</td></tr>
+                    <tr><td><strong>TEA-101</strong></td><td>Add retry logic for failed payments</td><td>In Dev</td><td class="stuck">4</td><td>Sarah</td></tr>
+                    <tr><td><strong>TEA-103</strong></td><td>Fix currency conversion bug</td><td>Ready for SIT</td><td class="stuck">3</td><td>Lisa</td></tr>
+                </table>
+            </div>
+            <div class="section">
+                <h3>💡 Recommendations</h3>
+                <div class="rec-high">🔴 🔴 3 items stuck - focus on unblocking</div>
+                <div class="rec-high">🔴 Monte Carlo shows 85% completion probability</div>
+                <div class="rec-medium">🟡 Current velocity suggests shortfall</div>
+            </div>
+        </div>
+
+        <div class="tab-content " id="tab-1">
+            <div class="team-header">
+                <div>
+                    <h2>Team Lightning</h2>
+                    <div>Sprint 47 - Team Lightning - Day 8 of 11</div>
+                </div>
+                <span class="health-badge health-at_risk">62% Completion</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="metric-value">25</div>
+                    <div class="metric-label">Committed SP</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" style="color: #10b981;">8</div>
+                    <div class="metric-label">Completed SP</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" style="color: #f59e0b;">17</div>
+                    <div class="metric-label">Remaining SP</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" style="color: #2563eb;">1.1</div>
+                    <div class="metric-label">SP/Day</div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 32.0%;"></div>
+            </div>
+            <div style="text-align: center; color: #6b7280;">Progress: 32.0%</div>
+
+            <div class="section">
+                <h3>📊 Phase Distribution</h3>
+                <table>
+                    <tr><th>Phase</th><th>Count</th><th>SP</th><th>Stuck</th></tr>
+                    <tr class=""><td>In Analysis</td><td>1</td><td>5</td><td>0</td></tr>
+                    <tr class="warning"><td>In Development</td><td>1</td><td>5</td><td><span class="stuck">1 ⚠️</span></td></tr>
+                    <tr class="warning"><td>Ready for SIT</td><td>1</td><td>2</td><td><span class="stuck">1 ⚠️</span></td></tr>
+                    <tr class="warning"><td>In SIT</td><td>1</td><td>3</td><td><span class="stuck">1 ⚠️</span></td></tr>
+                    <tr class=""><td>In TPO Review</td><td>1</td><td>2</td><td>0</td></tr>
+                    <tr class=""><td>Done</td><td>1</td><td>8</td><td>0</td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <h3>🚨 Stuck Items (3)</h3>
+                <table>
+                    <tr><th>Key</th><th>Summary</th><th>Status</th><th>Days</th><th>Assignee</th></tr>
+                    <tr><td><strong>TEA-102</strong></td><td>Payment confirmation email</td><td>In SIT</td><td class="stuck">5</td><td>Mike</td></tr>
+                    <tr><td><strong>TEA-101</strong></td><td>Add retry logic for failed payments</td><td>In Dev</td><td class="stuck">4</td><td>Sarah</td></tr>
+                    <tr><td><strong>TEA-103</strong></td><td>Fix currency conversion bug</td><td>Ready for SIT</td><td class="stuck">3</td><td>Lisa</td></tr>
+                </table>
+            </div>
+            <div class="section">
+                <h3>💡 Recommendations</h3>
+                <div class="rec-high">🔴 🔴 3 items stuck - focus on unblocking</div>
+                <div class="rec-high">🔴 Monte Carlo shows 62% completion probability</div>
+                <div class="rec-medium">🟡 Current velocity suggests shortfall</div>
+            </div>
+        </div>
+
+        <div class="tab-content " id="tab-2">
+            <div class="team-header">
+                <div>
+                    <h2>Team Storm</h2>
+                    <div>Sprint 47 - Team Storm - Day 8 of 11</div>
+                </div>
+                <span class="health-badge health-critical">45% Completion</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="metric-value">25</div>
+                    <div class="metric-label">Committed SP</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" style="color: #10b981;">8</div>
+                    <div class="metric-label">Completed SP</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" style="color: #f59e0b;">17</div>
+                    <div class="metric-label">Remaining SP</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" style="color: #2563eb;">1.1</div>
+                    <div class="metric-label">SP/Day</div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 32.0%;"></div>
+            </div>
+            <div style="text-align: center; color: #6b7280;">Progress: 32.0%</div>
+
+            <div class="section">
+                <h3>📊 Phase Distribution</h3>
+                <table>
+                    <tr><th>Phase</th><th>Count</th><th>SP</th><th>Stuck</th></tr>
+                    <tr class=""><td>In Analysis</td><td>1</td><td>5</td><td>0</td></tr>
+                    <tr class="warning"><td>In Development</td><td>1</td><td>5</td><td><span class="stuck">1 ⚠️</span></td></tr>
+                    <tr class="warning"><td>Ready for SIT</td><td>1</td><td>2</td><td><span class="stuck">1 ⚠️</span></td></tr>
+                    <tr class="warning"><td>In SIT</td><td>1</td><td>3</td><td><span class="stuck">1 ⚠️</span></td></tr>
+                    <tr class=""><td>In TPO Review</td><td>1</td><td>2</td><td>0</td></tr>
+                    <tr class=""><td>Done</td><td>1</td><td>8</td><td>0</td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <h3>🚨 Stuck Items (3)</h3>
+                <table>
+                    <tr><th>Key</th><th>Summary</th><th>Status</th><th>Days</th><th>Assignee</th></tr>
+                    <tr><td><strong>TEA-102</strong></td><td>Payment confirmation email</td><td>In SIT</td><td class="stuck">5</td><td>Mike</td></tr>
+                    <tr><td><strong>TEA-101</strong></td><td>Add retry logic for failed payments</td><td>In Dev</td><td class="stuck">4</td><td>Sarah</td></tr>
+                    <tr><td><strong>TEA-103</strong></td><td>Fix currency conversion bug</td><td>Ready for SIT</td><td class="stuck">3</td><td>Lisa</td></tr>
+                </table>
+            </div>
+            <div class="section">
+                <h3>💡 Recommendations</h3>
+                <div class="rec-high">🔴 🔴 3 items stuck - focus on unblocking</div>
+                <div class="rec-high">🔴 Monte Carlo shows 45% completion probability</div>
+                <div class="rec-medium">🟡 Current velocity suggests shortfall</div>
+            </div>
+        </div>
+
+        <div class="tab-content " id="tab-3">
+            <div class="team-header">
+                <div>
+                    <h2>Team Rain</h2>
+                    <div>Sprint 47 - Team Rain - Day 8 of 11</div>
+                </div>
+                <span class="health-badge health-at_risk">78% Completion</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric">
+                    <div class="metric-value">25</div>
+                    <div class="metric-label">Committed SP</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" style="color: #10b981;">8</div>
+                    <div class="metric-label">Completed SP</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" style="color: #f59e0b;">17</div>
+                    <div class="metric-label">Remaining SP</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" style="color: #2563eb;">1.1</div>
+                    <div class="metric-label">SP/Day</div>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 32.0%;"></div>
+            </div>
+            <div style="text-align: center; color: #6b7280;">Progress: 32.0%</div>
+
+            <div class="section">
+                <h3>📊 Phase Distribution</h3>
+                <table>
+                    <tr><th>Phase</th><th>Count</th><th>SP</th><th>Stuck</th></tr>
+                    <tr class=""><td>In Analysis</td><td>1</td><td>5</td><td>0</td></tr>
+                    <tr class="warning"><td>In Development</td><td>1</td><td>5</td><td><span class="stuck">1 ⚠️</span></td></tr>
+                    <tr class="warning"><td>Ready for SIT</td><td>1</td><td>2</td><td><span class="stuck">1 ⚠️</span></td></tr>
+                    <tr class="warning"><td>In SIT</td><td>1</td><td>3</td><td><span class="stuck">1 ⚠️</span></td></tr>
+                    <tr class=""><td>In TPO Review</td><td>1</td><td>2</td><td>0</td></tr>
+                    <tr class=""><td>Done</td><td>1</td><td>8</td><td>0</td></tr>
+                </table>
+            </div>
+
+            <div class="section">
+                <h3>🚨 Stuck Items (3)</h3>
+                <table>
+                    <tr><th>Key</th><th>Summary</th><th>Status</th><th>Days</th><th>Assignee</th></tr>
+                    <tr><td><strong>TEA-102</strong></td><td>Payment confirmation email</td><td>In SIT</td><td class="stuck">5</td><td>Mike</td></tr>
+                    <tr><td><strong>TEA-101</strong></td><td>Add retry logic for failed payments</td><td>In Dev</td><td class="stuck">4</td><td>Sarah</td></tr>
+                    <tr><td><strong>TEA-103</strong></td><td>Fix currency conversion bug</td><td>Ready for SIT</td><td class="stuck">3</td><td>Lisa</td></tr>
+                </table>
+            </div>
+            <div class="section">
+                <h3>💡 Recommendations</h3>
+                <div class="rec-high">🔴 🔴 3 items stuck - focus on unblocking</div>
+                <div class="rec-high">🔴 Monte Carlo shows 78% completion probability</div>
+                <div class="rec-medium">🟡 Current velocity suggests shortfall</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Sprint Health Agent 🤖 - All Teams Report
+        </div>
+    </div>
+
+    <script>
+        function showTab(index) {
+            document.querySelectorAll('.tab').forEach((tab, i) => {
+                tab.classList.toggle('active', i === index);
+            });
+            document.querySelectorAll('.tab-content').forEach((content, i) => {
+                content.classList.toggle('active', i === index);
+            });
+        }
+    </script>
+</body>
+</html>

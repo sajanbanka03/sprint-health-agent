@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Sprint Health Report - Sprint 47 - Demo Team</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px; border-radius: 8px; margin-bottom: 20px; }
+        .header h1 { margin: 0 0 10px 0; }
+        .health-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; background: #f59e0b; color: white; font-weight: bold; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        .metric { text-align: center; padding: 15px; background: #f9fafb; border-radius: 8px; }
+        .metric-value { font-size: 2em; font-weight: bold; color: #1f2937; }
+        .metric-label { color: #6b7280; font-size: 0.9em; }
+        .progress-bar { background: #e5e7eb; height: 20px; border-radius: 10px; overflow: hidden; }
+        .progress-fill { background: linear-gradient(90deg, #2563eb, #10b981); height: 100%; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f9fafb; font-weight: 600; }
+        .stuck { color: #ef4444; font-weight: bold; }
+        .warning { background: #fef3c7; }
+        .rec-high { border-left: 3px solid #ef4444; padding-left: 10px; margin: 5px 0; }
+        .rec-medium { border-left: 3px solid #f59e0b; padding-left: 10px; margin: 5px 0; }
+        .footer { text-align: center; color: #6b7280; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏃 Sprint Health Report</h1>
+        <div>Sprint 47 - Demo Team - Day 8 of 11</div>
+        <div style="margin-top: 15px;">
+            <span class="health-badge">AT RISK - 62% Completion Probability</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📈 Sprint Progress</h2>
+        <div class="metrics-grid">
+            <div class="metric">
+                <div class="metric-value">25</div>
+                <div class="metric-label">Committed SP</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" style="color: #10b981;">8</div>
+                <div class="metric-label">Completed SP</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" style="color: #f59e0b;">17</div>
+                <div class="metric-label">Remaining SP</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" style="color: #2563eb;">1.1</div>
+                <div class="metric-label">SP/Day</div>
+            </div>
+        </div>
+        <div style="margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span>Progress</span>
+                <span>32.0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 32.0%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📊 Work Distribution by Phase</h2>
+        <table>
+            <tr><th>Phase</th><th>Count</th><th>SP</th><th>% Total</th><th>Stuck</th></tr>
+<tr class=""><td>In Analysis</td><td>1</td><td>5</td><td>16.7%</td><td>0</td></tr>
+<tr class="warning"><td>In Development</td><td>1</td><td>5</td><td>16.7%</td><td><span class="stuck">1 ⚠️</span></td></tr>
+<tr class="warning"><td>Ready for SIT</td><td>1</td><td>2</td><td>16.7%</td><td><span class="stuck">1 ⚠️</span></td></tr>
+<tr class="warning"><td>In SIT</td><td>1</td><td>3</td><td>16.7%</td><td><span class="stuck">1 ⚠️</span></td></tr>
+<tr class=""><td>In TPO Review</td><td>1</td><td>2</td><td>16.7%</td><td>0</td></tr>
+<tr class=""><td>Done</td><td>1</td><td>8</td><td>16.7%</td><td>0</td></tr>
+
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>🚨 Stuck Items (3)</h2>
+        <table>
+            <tr><th>Key</th><th>Summary</th><th>Status</th><th>Days</th><th>Assignee</th></tr>
+<tr><td><strong>DEM-102</strong></td><td>Payment confirmation email</td><td>In SIT</td><td class="stuck">5</td><td>Mike</td></tr>
+<tr><td><strong>DEM-101</strong></td><td>Add retry logic for failed payments</td><td>In Dev</td><td class="stuck">4</td><td>Sarah</td></tr>
+<tr><td><strong>DEM-103</strong></td><td>Fix currency conversion bug</td><td>Ready for SIT</td><td class="stuck">3</td><td>Lisa</td></tr>
+
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>💡 Recommendations</h2>
+<div class="rec-high">🔴 🔴 3 items stuck - focus on unblocking</div>
+<div class="rec-high">🔴 Monte Carlo shows 62% completion probability</div>
+<div class="rec-medium">🟡 Current velocity suggests shortfall</div>
+
+    </div>
+
+    <div class="footer">
+        Generated at 2026-04-08 11:45 | Sprint Health Agent 🤖
+    </div>
+</body>
+</html>
