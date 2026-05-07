@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategic Insights - All Teams</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        /* All Teams Strategic Insights Styles */
+        .insights-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .insights-header {
+            background: linear-gradient(135deg, #1e3a5f, #8b5cf6);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        .insights-header h1 {
+            margin: 0 0 8px 0;
+            font-size: 1.8em;
+        }
+        .insights-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        .header-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .back-link {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .back-link:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .summary-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .summary-card-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .summary-card-value.healthy { color: #10b981; }
+        .summary-card-value.warning { color: #f59e0b; }
+        .summary-card-value.critical { color: #dc2626; }
+        .summary-card-label {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+
+        /* Team Cards Grid */
+        .teams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 25px;
+        }
+
+        .team-insight-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .team-insight-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .team-insight-header h3 {
+            margin: 0;
+            font-size: 1.2em;
+            color: #1f2937;
+        }
+        .team-status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        .team-status-badge.healthy { background: #dcfce7; color: #166534; }
+        .team-status-badge.warning, .team-status-badge.at_risk { background: #fef3c7; color: #92400e; }
+        .team-status-badge.critical, .team-status-badge.off_track { background: #fee2e2; color: #991b1b; }
+
+        .team-insight-body {
+            padding: 20px 25px;
+        }
+
+        /* Metrics Mini Grid */
+        .metrics-mini-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .metric-mini-card {
+            background: #f9fafb;
+            padding: 12px 15px;
+            border-radius: 8px;
+        }
+        .metric-mini-label {
+            font-size: 0.8em;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        .metric-mini-value {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .metric-mini-value.good { color: #10b981; }
+        .metric-mini-value.warning { color: #f59e0b; }
+        .metric-mini-value.bad { color: #dc2626; }
+
+        /* Alerts Section */
+        .team-alerts {
+            background: #fef2f2;
+            border-left: 3px solid #dc2626;
+            padding: 12px 15px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 15px;
+        }
+        .team-alerts.warning {
+            background: #fffbeb;
+            border-left-color: #f59e0b;
+        }
+        .team-alerts h4 {
+            margin: 0 0 8px 0;
+            font-size: 0.9em;
+            color: #991b1b;
+        }
+        .team-alerts.warning h4 {
+            color: #92400e;
+        }
+        .team-alerts ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 0.9em;
+            color: #4b5563;
+        }
+        .team-alerts li {
+            margin-bottom: 4px;
+        }
+
+        /* View Details Link */
+        .view-details-link {
+            display: block;
+            text-align: center;
+            padding: 12px;
+            background: #f3f4f6;
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .view-details-link:hover {
+            background: #e5e7eb;
+        }
+
+        /* Error Card */
+        .team-error-card {
+            background: #fee2e2;
+            padding: 20px;
+            text-align: center;
+            color: #991b1b;
+        }
+
+        /* Footer */
+        .insights-footer {
+            text-align: center;
+            padding: 20px;
+            color: #9ca3af;
+            font-size: 0.85em;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="insights-container">
+        <!-- Header -->
+        <div class="insights-header">
+            <div class="header-nav">
+                <div>
+                    <h1>🎯 Strategic Insights - All Teams</h1>
+                    <p>RTL Overview Dashboard - {{ all_insights|length }} Teams</p>
+                </div>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <a href="/all" class="back-link">← Back to All Teams Dashboard</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Statistics -->
+        {% set healthy_teams = namespace(value=0) %}
+        {% set at_risk_teams = namespace(value=0) %}
+        {% set critical_teams = namespace(value=0) %}
+        {% set total_outliers = namespace(value=0) %}
+        {% set burnout_risks = namespace(value=0) %}
+        {% set avg_flow = namespace(value=0) %}
+        {% set avg_ppm = namespace(value=0) %}
+        {% set team_count = namespace(value=0) %}
+
+        {% for ti in all_insights %}
+            {% if ti.insights %}
+                {% set team_count.value = team_count.value + 1 %}
+                {% set avg_flow.value = avg_flow.value + ti.insights.flow_efficiency.score %}
+                {% set avg_ppm.value = avg_ppm.value + ti.insights.ppm.ppm_score %}
+                {% set total_outliers.value = total_outliers.value + ti.insights.cycle_time.outliers|length %}
+                {% set burnout_risks.value = burnout_risks.value + ti.insights.wip_stress.high_risk_assignees|length %}
+
+                {% if ti.insights.ppm.status == 'on_track' %}
+                    {% set healthy_teams.value = healthy_teams.value + 1 %}
+                {% elif ti.insights.ppm.status == 'at_risk' %}
+                    {% set at_risk_teams.value = at_risk_teams.value + 1 %}
+                {% else %}
+                    {% set critical_teams.value = critical_teams.value + 1 %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-card-value healthy">{{ healthy_teams.value }}</div>
+                <div class="summary-card-label">✅ On Track</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-value warning">{{ at_risk_teams.value }}</div>
+                <div class="summary-card-label">⚠️ At Risk</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-value critical">{{ critical_teams.value }}</div>
+                <div class="summary-card-label">🚨 Critical</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-value">{{ total_outliers.value }}</div>
+                <div class="summary-card-label">⏱️ Cycle Time Outliers</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-value {% if burnout_risks.value > 0 %}critical{% endif %}">{{ burnout_risks.value }}</div>
+                <div class="summary-card-label">🔥 Burnout Risks</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-value">{{ (avg_flow.value / team_count.value)|round(1) if team_count.value > 0 else 0 }}%</div>
+                <div class="summary-card-label">⚡ Avg Flow Efficiency</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-card-value">{{ (avg_ppm.value / team_count.value)|round(1) if team_count.value > 0 else 0 }}%</div>
+                <div class="summary-card-label">📈 Avg PPM Score</div>
+            </div>
+        </div>
+
+        <!-- Team Cards -->
+        <div class="teams-grid">
+            {% for ti in all_insights %}
+            <div class="team-insight-card">
+                {% if ti.insights %}
+                <div class="team-insight-header">
+                    <h3>{{ ti.name }}</h3>
+                    <span class="team-status-badge {{ ti.insights.ppm.status }}">
+                        {{ ti.insights.ppm.status | upper | replace('_', ' ') }}
+                    </span>
+                </div>
+                <div class="team-insight-body">
+                    <!-- Mini Metrics -->
+                    <div class="metrics-mini-grid">
+                        <div class="metric-mini-card">
+                            <div class="metric-mini-label">📈 PPM Score</div>
+                            <div class="metric-mini-value {% if ti.insights.ppm.ppm_score >= 80 %}good{% elif ti.insights.ppm.ppm_score >= 60 %}warning{% else %}bad{% endif %}">
+                                {{ ti.insights.ppm.ppm_score }}%
+                            </div>
+                        </div>
+                        <div class="metric-mini-card">
+                            <div class="metric-mini-label">⚡ Flow Efficiency</div>
+                            <div class="metric-mini-value {% if ti.insights.flow_efficiency.score >= 20 %}good{% elif ti.insights.flow_efficiency.score >= 10 %}warning{% else %}bad{% endif %}">
+                                {{ ti.insights.flow_efficiency.score }}%
+                            </div>
+                        </div>
+                        <div class="metric-mini-card">
+                            <div class="metric-mini-label">⏱️ Outliers</div>
+                            <div class="metric-mini-value {% if ti.insights.cycle_time.outliers|length == 0 %}good{% elif ti.insights.cycle_time.outliers|length <= 2 %}warning{% else %}bad{% endif %}">
+                                {{ ti.insights.cycle_time.outliers|length }}
+                            </div>
+                        </div>
+                        <div class="metric-mini-card">
+                            <div class="metric-mini-label">💡 Innovation</div>
+                            <div class="metric-mini-value {% if ti.insights.innovation_rate.innovation_percentage >= 70 %}good{% elif ti.insights.innovation_rate.innovation_percentage >= 50 %}warning{% else %}bad{% endif %}">
+                                {{ ti.insights.innovation_rate.innovation_percentage|round(0) }}%
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sprint Info -->
+                    <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 10px;">
+                        📋 {{ ti.report.sprint_info.name }} |
+                        {{ ti.report.metrics.completed_story_points }}/{{ ti.report.metrics.total_story_points }} SP
+                    </div>
+
+                    <!-- Alerts if any -->
+                    {% set alerts = [] %}
+                    {% if ti.insights.ppm.status == 'off_track' %}
+                        {% set _ = alerts.append('PPM critically low - scope negotiation needed') %}
+                    {% endif %}
+                    {% if ti.insights.wip_stress.high_risk_assignees|length > 0 %}
+                        {% set _ = alerts.append(ti.insights.wip_stress.high_risk_assignees|length ~ ' team member(s) at burnout risk') %}
+                    {% endif %}
+                    {% if ti.insights.cycle_time.outliers|length > 2 %}
+                        {% set _ = alerts.append(ti.insights.cycle_time.outliers|length ~ ' cycle time outliers detected') %}
+                    {% endif %}
+                    {% if ti.insights.flow_efficiency.status == 'critical' %}
+                        {% set _ = alerts.append('Critical flow efficiency - systemic bottleneck') %}
+                    {% endif %}
+                    {% if ti.insights.innovation_rate.status == 'critical' %}
+                        {% set _ = alerts.append('Quality focus needed - high maintenance ratio') %}
+                    {% endif %}
+
+                    {% if alerts %}
+                    <div class="team-alerts {% if ti.insights.ppm.status != 'off_track' %}warning{% endif %}">
+                        <h4>{% if ti.insights.ppm.status == 'off_track' %}🚨 Critical Alerts{% else %}⚠️ Attention Needed{% endif %}</h4>
+                        <ul>
+                            {% for alert in alerts %}
+                            <li>{{ alert }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+                <a href="/insights?team={{ ti.name }}" class="view-details-link">View Full Details →</a>
+                {% else %}
+                <div class="team-insight-header">
+                    <h3>{{ ti.name }}</h3>
+                    <span class="team-status-badge critical">ERROR</span>
+                </div>
+                <div class="team-error-card">
+                    <p>❌ Could not load insights</p>
+                    <p style="font-size: 0.9em;">{{ ti.error or 'Unknown error' }}</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Footer -->
+        <div class="insights-footer">
+            Sprint Health Dashboard - All Teams Strategic Insights | Generated {{ now().strftime('%Y-%m-%d %H:%M') if now is defined else 'Now' }} | By Sajan Banka
+        </div>
+    </div>
+</body>
+</html>
+

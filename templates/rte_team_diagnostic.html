@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Diagnostic - {{ current_team }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .diagnostic-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .team-info h1 {
+            font-size: 1.75rem;
+            margin-bottom: 4px;
+        }
+        .health-hero {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 24px;
+            border-radius: 12px;
+        }
+        .health-hero.healthy { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+        .health-hero.warning { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+        .health-hero.critical { background: linear-gradient(135deg, #fee2e2, #fecaca); }
+        .health-score {
+            font-size: 3rem;
+            font-weight: 700;
+        }
+        .health-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .summary-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        .summary-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+        .two-columns {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 1024px) {
+            .two-columns, .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .report-section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .section-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .section-header h3 {
+            margin: 0;
+            font-size: 1rem;
+        }
+        .section-content {
+            padding: 20px;
+        }
+        .strengths-list, .concerns-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .strengths-list li, .concerns-list li {
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .strengths-list li {
+            background: #d1fae5;
+        }
+        .concerns-list li {
+            background: #fee2e2;
+        }
+        .actions-section {
+            margin-bottom: 24px;
+        }
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+        .action-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .action-card.immediate {
+            border-left: 4px solid var(--danger-color);
+        }
+        .action-card.medium-term {
+            border-left: 4px solid var(--warning-color);
+        }
+        .action-card h3 {
+            margin: 0 0 12px 0;
+            font-size: 1rem;
+        }
+        .action-item {
+            display: flex;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .action-item:last-child {
+            border-bottom: none;
+        }
+        .reports-accordion {
+            margin-bottom: 24px;
+        }
+        .accordion-item {
+            background: var(--card-bg);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .accordion-header {
+            padding: 16px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+        }
+        .accordion-header:hover {
+            background: #f1f5f9;
+        }
+        .accordion-content {
+            padding: 20px;
+            display: none;
+        }
+        .accordion-content.active {
+            display: block;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data-table th, .data-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .data-table th {
+            background: #f8fafc;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .badge.green { background: #d1fae5; color: #065f46; }
+        .badge.amber { background: #fef3c7; color: #92400e; }
+        .badge.red { background: #fee2e2; color: #991b1b; }
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .nav-tab {
+            padding: 10px 20px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+        .nav-tab:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--primary-color);
+            text-decoration: none;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation -->
+        <div class="nav-tabs">
+            <a href="/?team={{ current_team }}" class="nav-tab">🏠 Dashboard</a>
+            <a href="/rte/portfolio" class="nav-tab">📊 Portfolio</a>
+            <a href="/diagnostics?team={{ current_team }}" class="nav-tab">🔬 Diagnostics</a>
+        </div>
+
+        <!-- Header -->
+        <header class="diagnostic-header">
+            <div class="team-info">
+                <a href="/rte/portfolio" class="back-link">← Back to Portfolio</a>
+                <h1>🔍 Team Diagnostic: {{ current_team }}</h1>
+                <p style="color: var(--text-muted);">
+                    {{ diagnostic.team_diagnostic.sprint_info.name }} |
+                    Day {{ diagnostic.team_diagnostic.sprint_info.days_elapsed }} of
+                    {{ diagnostic.team_diagnostic.sprint_info.total_days }}
+                </p>
+            </div>
+            <div class="health-hero {{ diagnostic.team_diagnostic.overall_health }}">
+                <div>
+                    <div class="health-score">{{ "%.0f"|format(diagnostic.team_diagnostic.health_score) }}</div>
+                    <div class="health-label">Health Score</div>
+                </div>
+                <div style="font-size: 2rem;">
+                    {% if diagnostic.team_diagnostic.overall_health == 'healthy' %}✅
+                    {% elif diagnostic.team_diagnostic.overall_health == 'warning' %}⚠️
+                    {% else %}🚨{% endif %}
+                </div>
+            </div>
+        </header>
+
+        <!-- Summary Grid -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-value" style="color: {{ 'var(--success-color)' if diagnostic.team_diagnostic.flow_efficiency >= 50 else 'var(--warning-color)' }};">
+                    {{ "%.0f"|format(diagnostic.team_diagnostic.flow_efficiency) }}%
+                </div>
+                <div class="summary-label">Flow Efficiency</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-value" style="color: {{ 'var(--danger-color)' if diagnostic.team_diagnostic.aging_alert_count > 0 else 'var(--success-color)' }};">
+                    {{ diagnostic.team_diagnostic.aging_alert_count }}
+                </div>
+                <div class="summary-label">Aging Alerts</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-value">{{ diagnostic.team_diagnostic.quality_grade }}</div>
+                <div class="summary-label">Quality Grade</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-value" style="color: {{ 'var(--danger-color)' if diagnostic.team_diagnostic.burnout_risk_count > 0 else 'var(--success-color)' }};">
+                    {{ diagnostic.team_diagnostic.burnout_risk_count }}
+                </div>
+                <div class="summary-label">Burnout Risks</div>
+            </div>
+        </div>
+
+        <!-- Strengths & Concerns -->
+        <div class="two-columns">
+            <div class="report-section">
+                <div class="section-header">
+                    <h3>💪 Strengths</h3>
+                </div>
+                <div class="section-content">
+                    {% if diagnostic.team_diagnostic.top_strengths %}
+                    <ul class="strengths-list">
+                        {% for strength in diagnostic.team_diagnostic.top_strengths %}
+                        <li>✅ {{ strength }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p style="color: var(--text-muted);">No notable strengths identified yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="report-section">
+                <div class="section-header">
+                    <h3>⚠️ Concerns</h3>
+                </div>
+                <div class="section-content">
+                    {% if diagnostic.team_diagnostic.top_concerns %}
+                    <ul class="concerns-list">
+                        {% for concern in diagnostic.team_diagnostic.top_concerns %}
+                        <li>🔴 {{ concern }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p style="color: var(--success-color);">No major concerns! 🎉</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Items -->
+        <div class="actions-section">
+            <div class="actions-grid">
+                <div class="action-card immediate">
+                    <h3>🚨 Immediate Actions</h3>
+                    {% if diagnostic.immediate_actions %}
+                    {% for action in diagnostic.immediate_actions %}
+                    <div class="action-item">
+                        <span>🔴</span>
+                        <span>{{ action }}</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p style="color: var(--success-color);">No immediate actions required.</p>
+                    {% endif %}
+                </div>
+                <div class="action-card medium-term">
+                    <h3>📅 Medium-Term Actions</h3>
+                    {% if diagnostic.medium_term_actions %}
+                    {% for action in diagnostic.medium_term_actions %}
+                    <div class="action-item">
+                        <span>🟡</span>
+                        <span>{{ action }}</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p style="color: var(--success-color);">No medium-term actions identified.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Reports Accordion -->
+        <div class="reports-accordion">
+            <h2 style="margin-bottom: 16px;">📊 Detailed Analysis</h2>
+
+            <!-- Aging WIP Report -->
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>⏱️ Work Item Age (SLE Analysis)</span>
+                    <span>▼</span>
+                </div>
+                <div class="accordion-content">
+                    <p style="margin-bottom: 12px;">
+                        <strong>85th Percentile SLE:</strong> {{ "%.1f"|format(diagnostic.aging_report.percentile_85_cycle_time) }} days
+                    </p>
+                    <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+                        <span class="badge green">Green: {{ diagnostic.aging_report.total_green }}</span>
+                        <span class="badge amber">Amber: {{ diagnostic.aging_report.total_amber }}</span>
+                        <span class="badge red">Red: {{ diagnostic.aging_report.total_red + diagnostic.aging_report.total_critical }}</span>
+                    </div>
+                    {% if diagnostic.aging_report.critical_items %}
+                    <h4>Critical Items (Over SLE)</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Key</th><th>Summary</th><th>Age</th><th>SLE</th><th>Risk</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for item in diagnostic.aging_report.critical_items[:5] %}
+                            <tr>
+                                <td><strong>{{ item.issue_key }}</strong></td>
+                                <td>{{ item.summary[:40] }}...</td>
+                                <td>{{ item.work_item_age_days }}d</td>
+                                <td>{{ "%.0f"|format(item.sle_days) }}d</td>
+                                <td><span class="badge red">{{ item.risk_level.value }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Flow Efficiency Report -->
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>🌊 Flow Efficiency (Wait vs Work)</span>
+                    <span>▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: 700; color: var(--success-color);">
+                                {{ "%.0f"|format(diagnostic.flow_report.total_active_hours) }}h
+                            </div>
+                            <div style="color: var(--text-muted);">Active Work</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: 700; color: var(--warning-color);">
+                                {{ "%.0f"|format(diagnostic.flow_report.total_passive_hours) }}h
+                            </div>
+                            <div style="color: var(--text-muted);">Wait Time</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2rem; font-weight: 700;">
+                                {{ "%.1f"|format(diagnostic.flow_report.wait_work_ratio) }}x
+                            </div>
+                            <div style="color: var(--text-muted);">Wait/Work Ratio</div>
+                        </div>
+                    </div>
+                    {% if diagnostic.flow_report.alert_message %}
+                    <div style="padding: 12px; background: #fef3c7; border-radius: 8px; margin-bottom: 12px;">
+                        ⚠️ {{ diagnostic.flow_report.alert_message }}
+                    </div>
+                    {% endif %}
+                    {% if diagnostic.flow_report.bottleneck_statuses %}
+                    <h4>Top Bottlenecks</h4>
+                    <table class="data-table">
+                        <thead><tr><th>Status</th><th>Hours</th><th>Recommendation</th></tr></thead>
+                        <tbody>
+                            {% for status, hours, rec in diagnostic.flow_report.bottleneck_statuses[:3] %}
+                            <tr>
+                                <td>{{ status }}</td>
+                                <td>{{ "%.0f"|format(hours) }}h</td>
+                                <td>{{ rec[:50] }}...</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Sentiment Report -->
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>💬 Sentiment & Blockers</span>
+                    <span>▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
+                        <span style="font-size: 2.5rem;">
+                            {% if diagnostic.sentiment_report.team_sentiment.value == 'positive' %}😊
+                            {% elif diagnostic.sentiment_report.team_sentiment.value == 'neutral' %}😐
+                            {% elif diagnostic.sentiment_report.team_sentiment.value == 'negative' %}😟
+                            {% else %}😤{% endif %}
+                        </span>
+                        <div>
+                            <strong style="font-size: 1.2rem;">{{ diagnostic.sentiment_report.team_sentiment.value | title }}</strong>
+                            <p style="color: var(--text-muted); margin: 0;">
+                                Trend: {{ diagnostic.sentiment_report.sentiment_trend }}
+                            </p>
+                        </div>
+                    </div>
+                    {% if diagnostic.sentiment_report.burnout_risk_items %}
+                    <div style="padding: 12px; background: #fee2e2; border-radius: 8px; margin-bottom: 12px;">
+                        🔥 {{ diagnostic.sentiment_report.burnout_risk_count }} burnout risk(s) detected
+                    </div>
+                    {% endif %}
+                    {% if diagnostic.sentiment_report.blocker_distribution %}
+                    <h4>Blocker Root Causes (Pareto)</h4>
+                    <table class="data-table">
+                        <thead><tr><th>Category</th><th>Count</th><th>%</th></tr></thead>
+                        <tbody>
+                            {% for dist in diagnostic.sentiment_report.blocker_distribution[:4] %}
+                            <tr>
+                                <td>{{ dist.display_name }}</td>
+                                <td>{{ dist.count }}</td>
+                                <td>{{ "%.0f"|format(dist.percentage) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quality Report -->
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>🛡️ Quality & Technical Debt</span>
+                    <span>▼</span>
+                </div>
+                <div class="accordion-content">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 2.5rem; font-weight: 700;">{{ diagnostic.quality_report.quality_grade }}</div>
+                            <div style="color: var(--text-muted);">Quality Grade</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: {{ 'var(--success-color)' if diagnostic.quality_report.defect_metrics.leakage_rate < 10 else 'var(--danger-color)' }};">
+                                {{ "%.1f"|format(diagnostic.quality_report.defect_metrics.leakage_rate) }}%
+                            </div>
+                            <div style="color: var(--text-muted);">Defect Leakage</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: {{ 'var(--success-color)' if diagnostic.quality_report.sqale_metrics.technical_debt_ratio < 5 else 'var(--danger-color)' }};">
+                                {{ "%.1f"|format(diagnostic.quality_report.sqale_metrics.technical_debt_ratio) }}%
+                            </div>
+                            <div style="color: var(--text-muted);">Tech Debt Ratio</div>
+                        </div>
+                    </div>
+                    {% for alert in diagnostic.quality_report.alerts %}
+                    <div style="padding: 12px; background: {{ '#fee2e2' if '🔴' in alert else '#fef3c7' }}; border-radius: 8px; margin-bottom: 8px;">
+                        {{ alert }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>Generated at {{ diagnostic.generated_at.strftime('%Y-%m-%d %H:%M') }} | Team Diagnostic View 🔍 | By Sajan Banka</p>
+        </footer>
+    </div>
+
+    <script>
+        function toggleAccordion(header) {
+            const content = header.nextElementSibling;
+            content.classList.toggle('active');
+            header.querySelector('span:last-child').textContent =
+                content.classList.contains('active') ? '▲' : '▼';
+        }
+    </script>
+</body>
+</html>
+

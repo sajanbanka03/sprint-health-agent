@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprint Health Dashboard - All Teams</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        /* Loading Overlay Styles */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .loading-overlay.hidden {
+            display: none;
+        }
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #e5e7eb;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loading-text {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #4b5563;
+        }
+        .loading-subtext {
+            margin-top: 8px;
+            font-size: 0.9em;
+            color: #9ca3af;
+        }
+
+        /* Force Refresh Button */
+        .force-refresh-btn {
+            padding: 10px 20px;
+            background: #f59e0b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        .force-refresh-btn:hover {
+            background: #d97706;
+        }
+
+        /* Download Button */
+        .download-btn {
+            padding: 10px 20px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        .download-btn:hover {
+            background: #059669;
+        }
+        .download-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        /* Cache indicator for cards */
+        .cache-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.7em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .team-card {
+            position: relative;
+        }
+
+        /* All Teams Dashboard Styles */
+        .all-teams-header {
+            background: linear-gradient(135deg, #1e3a5f, #2563eb);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        .all-teams-header h1 {
+            margin: 0 0 10px 0;
+        }
+        .header-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .back-link {
+            display: inline-block;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+        .back-link:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Team Cards Grid */
+        .teams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .team-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 4px solid #e5e7eb;
+        }
+        .team-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        .team-card.health-healthy { border-left-color: #10b981; }
+        .team-card.health-at_risk { border-left-color: #f59e0b; }
+        .team-card.health-critical { border-left-color: #ef4444; }
+        .team-card.error { border-left-color: #6b7280; opacity: 0.7; }
+
+        .team-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .team-card-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .team-card-health {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        .team-card-health.healthy { background: #d1fae5; color: #065f46; }
+        .team-card-health.at_risk { background: #fef3c7; color: #92400e; }
+        .team-card-health.critical { background: #fee2e2; color: #991b1b; }
+
+        .team-card-sprint {
+            color: #6b7280;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .team-card-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .team-metric {
+            text-align: center;
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        .team-metric-value {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .team-metric-label {
+            font-size: 0.75em;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+        .team-metric.probability .team-metric-value.high { color: #10b981; }
+        .team-metric.probability .team-metric-value.medium { color: #f59e0b; }
+        .team-metric.probability .team-metric-value.low { color: #ef4444; }
+
+        .team-card-stuck {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .stuck-indicator {
+            color: #ef4444;
+            font-weight: 500;
+        }
+        .stuck-indicator.zero {
+            color: #10b981;
+        }
+
+        .team-card-error {
+            color: #ef4444;
+            font-size: 0.9em;
+            padding: 15px;
+            background: #fee2e2;
+            border-radius: 6px;
+        }
+
+        /* Summary Stats */
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .summary-stat {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .summary-stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .summary-stat-label {
+            font-size: 0.85em;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #6b7280;
+        }
+        .refresh-btn {
+            padding: 10px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        .refresh-btn:hover {
+            background: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading All Teams...</div>
+        <div class="loading-subtext">Fetching data from Jira</div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="all-teams-header">
+            <div class="header-nav">
+                <div>
+                    <h1> Sprint Health Dashboard - All Teams</h1>
+                    <p>Overview of all {{ team_reports|length }} teams</p>
+                </div>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button onclick="downloadAllTeamsReport()" class="download-btn" id="downloadBtn" title="Download All Teams Report">
+                        ⬇️ Download
+                    </button>
+                    <button onclick="forceRefresh()" class="force-refresh-btn">
+                         Force Refresh All
+                    </button>
+                    <a href="/" class="back-link">← Single Team View</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Statistics -->
+        {% set total_committed = namespace(value=0) %}
+        {% set total_completed = namespace(value=0) %}
+        {% set total_stuck = namespace(value=0) %}
+        {% set healthy_count = namespace(value=0) %}
+        {% set at_risk_count = namespace(value=0) %}
+        {% set critical_count = namespace(value=0) %}
+
+        {% for tr in team_reports %}
+            {% if tr.report %}
+                {% set total_committed.value = total_committed.value + tr.report.metrics.total_story_points %}
+                {% set total_completed.value = total_completed.value + tr.report.metrics.completed_story_points %}
+                {% set total_stuck.value = total_stuck.value + tr.report.stuck_summary.total_stuck_count %}
+                {% if tr.report.health_status.value == 'healthy' %}
+                    {% set healthy_count.value = healthy_count.value + 1 %}
+                {% elif tr.report.health_status.value == 'at_risk' %}
+                    {% set at_risk_count.value = at_risk_count.value + 1 %}
+                {% else %}
+                    {% set critical_count.value = critical_count.value + 1 %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+
+        <div class="summary-stats">
+            <div class="summary-stat">
+                <div class="summary-stat-value">{{ team_reports|length }}</div>
+                <div class="summary-stat-label">Teams</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value">{{ "%.0f"|format(total_committed.value) }}</div>
+                <div class="summary-stat-label">Total Committed SP</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value" style="color: #10b981;">{{ "%.0f"|format(total_completed.value) }}</div>
+                <div class="summary-stat-label">Total Completed SP</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value" style="color: #ef4444;">{{ total_stuck.value }}</div>
+                <div class="summary-stat-label">Total Stuck Items</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value" style="color: #10b981;">{{ healthy_count.value }} ✅</div>
+                <div class="summary-stat-label">Healthy</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value" style="color: #f59e0b;">{{ at_risk_count.value }} ⚠️</div>
+                <div class="summary-stat-label">At Risk</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value" style="color: #ef4444;">{{ critical_count.value }} </div>
+                <div class="summary-stat-label">Critical</div>
+            </div>
+        </div>
+
+        <!-- Team Cards -->
+        <div class="teams-grid">
+            {% for tr in team_reports %}
+            <div class="team-card {% if tr.report %}health-{{ tr.report.health_status.value }}{% else %}error{% endif %}"
+                 onclick="goToTeam('{{ tr.name }}')">
+                {% if tr.get('from_cache', false) %}
+                <span class="cache-badge"> Cached</span>
+                {% endif %}
+                {% if tr.report %}
+                <div class="team-card-header">
+                    <span class="team-card-name">{{ tr.name }}</span>
+                    <span class="team-card-health {{ tr.report.health_status.value }}">
+                        {% if tr.report.health_status.value == 'healthy' %}✅{% elif tr.report.health_status.value == 'at_risk' %}⚠️{% else %}{% endif %}
+                        {{ tr.report.health_status.value | replace('_', ' ') }}
+                    </span>
+                </div>
+
+                <div class="team-card-sprint">
+                     {{ tr.report.sprint_info.name }} (Day {{ tr.report.sprint_info.days_elapsed }}/{{ tr.report.sprint_info.total_days }})
+                </div>
+
+                <div class="team-card-metrics">
+                    <div class="team-metric">
+                        <div class="team-metric-value">{{ "%.0f"|format(tr.report.metrics.total_story_points) }}</div>
+                        <div class="team-metric-label">Committed SP</div>
+                    </div>
+                    <div class="team-metric">
+                        <div class="team-metric-value" style="color: #10b981;">{{ "%.0f"|format(tr.report.metrics.completed_story_points) }}</div>
+                        <div class="team-metric-label">Completed SP</div>
+                    </div>
+                    <div class="team-metric probability">
+                        {% set prob = tr.report.velocity.completion_probability %}
+                        <div class="team-metric-value {% if prob >= 70 %}high{% elif prob >= 50 %}medium{% else %}low{% endif %}">
+                            {{ "%.0f"|format(prob) }}%
+                        </div>
+                        <div class="team-metric-label">Completion</div>
+                    </div>
+                    <div class="team-metric">
+                        <div class="team-metric-value">{{ "%.1f"|format(tr.report.velocity.daily_velocity) }}</div>
+                        <div class="team-metric-label">SP/Day</div>
+                    </div>
+                </div>
+
+                <div class="team-card-stuck">
+                    <span>Stuck Items:</span>
+                    <span class="stuck-indicator {% if tr.report.stuck_summary.total_stuck_count == 0 %}zero{% endif %}">
+                        {% if tr.report.stuck_summary.total_stuck_count > 0 %}
+                            {{ tr.report.stuck_summary.total_stuck_count }} ⚠️
+                        {% else %}
+                            None ✅
+                        {% endif %}
+                    </span>
+                </div>
+                {% else %}
+                <div class="team-card-header">
+                    <span class="team-card-name">{{ tr.name }}</span>
+                    <span class="team-card-health" style="background: #fee2e2; color: #991b1b;">Error</span>
+                </div>
+                <div class="team-card-error">
+                    ❌ {{ tr.error }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Generated at {{ now().strftime('%Y-%m-%d %H:%M') if now is defined else 'Now' }} | Sprint Health Agent  | By Sajan Banka</p>
+            <button onclick="location.reload()" class="refresh-btn"> Refresh All</button>
+        </div>
+    </div>
+
+    <script>
+        // Flag to track if we're downloading (to prevent loading overlay)
+        let isDownloading = false;
+
+        // Show loading overlay
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        // Go to team dashboard with loading
+        function goToTeam(teamName) {
+            showLoading();
+            window.location.href = '/?team=' + encodeURIComponent(teamName);
+        }
+
+        // Force refresh all teams (bypass cache)
+        function forceRefresh() {
+            showLoading();
+            window.location.href = '/all?refresh=1';
+        }
+
+        // Download all teams report
+        function downloadAllTeamsReport() {
+            const btn = document.getElementById('downloadBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Downloading...';
+
+            // Set flag to prevent loading overlay during download
+            isDownloading = true;
+
+            // Create a hidden link and click it
+            const link = document.createElement('a');
+            link.href = '/api/download/all-teams';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Re-enable button after a short delay and reset flag
+            setTimeout(function() {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                isDownloading = false;
+            }, 1500);
+        }
+
+        // Show loading on navigation - but not during downloads
+        window.addEventListener('beforeunload', function() {
+            if (!isDownloading) {
+                showLoading();
+            }
+        });
+
+        // Auto-refresh every 5 minutes
+        setTimeout(function() {
+            showLoading();
+            location.reload();
+        }, 300000);
+    </script>
+</body>
+</html>
+

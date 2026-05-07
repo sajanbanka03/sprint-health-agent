@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Metric Builder - {{ current_team }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        /* Metric Builder Styles */
+        .builder-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .builder-header {
+            background: linear-gradient(135deg, #1e3a5f, #2563eb);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        .builder-header h1 {
+            margin: 0 0 8px 0;
+            font-size: 1.8em;
+        }
+        .builder-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        .header-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .back-link {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .back-link:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Two Column Layout */
+        .builder-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+        }
+        @media (max-width: 900px) {
+            .builder-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Template Sidebar */
+        .template-sidebar {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        .sidebar-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1f2937;
+        }
+
+        /* Category Tabs */
+        .category-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .category-tab {
+            padding: 6px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+        .category-tab:hover {
+            border-color: #2563eb;
+            color: #2563eb;
+        }
+        .category-tab.active {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+
+        /* Template Cards */
+        .template-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .template-card {
+            padding: 12px 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .template-card:hover {
+            border-color: #2563eb;
+            background: #f0f7ff;
+        }
+        .template-card.selected {
+            border-color: #2563eb;
+            background: #dbeafe;
+        }
+        .template-card-name {
+            font-weight: 500;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+        .template-card-desc {
+            font-size: 0.8em;
+            color: #6b7280;
+        }
+        .template-card-category {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #f3f4f6;
+            border-radius: 10px;
+            font-size: 0.7em;
+            color: #6b7280;
+            margin-top: 6px;
+        }
+
+        /* Result Panel */
+        .result-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .result-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .result-subtitle {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+
+        /* Parameter Form */
+        .param-form {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .param-form.visible {
+            display: block;
+        }
+        .param-form h4 {
+            margin: 0 0 10px 0;
+            font-size: 0.9em;
+            color: #4b5563;
+        }
+        .param-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .param-row label {
+            min-width: 100px;
+            font-size: 0.85em;
+            color: #6b7280;
+        }
+        .param-row input, .param-row select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        .run-btn {
+            padding: 10px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+        .run-btn:hover {
+            background: #1d4ed8;
+        }
+        .run-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        /* Metric Result Display */
+        .metric-result {
+            display: none;
+        }
+        .metric-result.visible {
+            display: block;
+        }
+        .metric-value-large {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+        .metric-generated {
+            font-size: 0.8em;
+            color: #9ca3af;
+            margin-bottom: 20px;
+        }
+
+        /* Result Table */
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .result-table th {
+            background: #f9fafb;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 500;
+            color: #4b5563;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .result-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #1f2937;
+        }
+        .result-table tr:hover {
+            background: #f9fafb;
+        }
+        .issue-key {
+            font-family: monospace;
+            color: #2563eb;
+        }
+
+        /* Distribution Chart */
+        .distribution-chart {
+            margin-top: 20px;
+        }
+        .dist-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .dist-label {
+            width: 150px;
+            font-size: 0.9em;
+            color: #4b5563;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .dist-bar-container {
+            flex: 1;
+            height: 24px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0 10px;
+        }
+        .dist-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2563eb, #60a5fa);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        .dist-value {
+            min-width: 60px;
+            text-align: right;
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        /* Loading State */
+        .loading-indicator {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .loading-indicator.visible {
+            display: block;
+        }
+        .loading-spinner-small {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e5e7eb;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        .empty-state h3 {
+            margin: 0 0 10px 0;
+            color: #4b5563;
+        }
+
+        /* Footer */
+        .builder-footer {
+            text-align: center;
+            padding: 20px;
+            color: #9ca3af;
+            font-size: 0.85em;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="builder-container">
+        <!-- Header -->
+        <div class="builder-header">
+            <div class="header-nav">
+                <div>
+                    <h1> Custom Metric Builder</h1>
+                    <p>Create and explore custom metrics for {{ current_team }}</p>
+                </div>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <select id="teamSelect" onchange="changeTeam(this.value)" style="padding: 8px 12px; border-radius: 6px; border: none;">
+                        {% for team in teams %}
+                        <option value="{{ team.name }}" {% if team.name == current_team %}selected{% endif %}>
+                            {{ team.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <a href="/?team={{ current_team }}" class="back-link">← Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="builder-layout">
+            <!-- Template Sidebar -->
+            <div class="template-sidebar">
+                <div class="sidebar-title"> Metric Templates</div>
+
+                <!-- Category Tabs -->
+                <div class="category-tabs">
+                    <button class="category-tab active" data-category="all" onclick="filterCategory('all')">All</button>
+                    {% for category in categories %}
+                    <button class="category-tab" data-category="{{ category }}" onclick="filterCategory('{{ category }}')">{{ category }}</button>
+                    {% endfor %}
+                </div>
+
+                <!-- Template List -->
+                <div class="template-list" id="templateList">
+                    {% for template in templates %}
+                    <div class="template-card"
+                         data-template-id="{{ template.id }}"
+                         data-category="{{ template.category }}"
+                         data-params="{{ template.configurable_params | tojson }}"
+                         onclick="selectTemplate('{{ template.id }}', '{{ template.name }}', '{{ template.description }}', {{ template.configurable_params | tojson }})">
+                        <div class="template-card-name">{{ template.name }}</div>
+                        <div class="template-card-desc">{{ template.description }}</div>
+                        <span class="template-card-category">{{ template.category }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Result Panel -->
+            <div class="result-panel">
+                <div class="result-header">
+                    <div>
+                        <div class="result-title" id="resultTitle">Select a Metric Template</div>
+                        <div class="result-subtitle" id="resultSubtitle">Choose a template from the left to generate a custom metric</div>
+                    </div>
+                </div>
+
+                <!-- Parameter Form (hidden by default) -->
+                <div class="param-form" id="paramForm">
+                    <h4>⚙️ Configure Parameters</h4>
+                    <div id="paramInputs"></div>
+                    <button class="run-btn" onclick="runMetric()"> Generate Metric</button>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div class="loading-indicator" id="loadingIndicator">
+                    <div class="loading-spinner-small"></div>
+                    <p>Generating metric...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-state-icon"></div>
+                    <h3>No metric selected</h3>
+                    <p>Select a template from the left panel to generate insights from your sprint data.</p>
+                </div>
+
+                <!-- Metric Result -->
+                <div class="metric-result" id="metricResult">
+                    <div class="metric-value-large" id="metricValue"></div>
+                    <div class="metric-generated" id="metricGenerated"></div>
+
+                    <!-- Distribution Chart (for distribution metrics) -->
+                    <div class="distribution-chart" id="distributionChart" style="display: none;"></div>
+
+                    <!-- Result Table (for list metrics) -->
+                    <div id="resultTableContainer" style="display: none;">
+                        <table class="result-table" id="resultTable">
+                            <thead id="resultTableHead"></thead>
+                            <tbody id="resultTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="builder-footer">
+            Sprint Health Dashboard - Custom Metric Builder | By Sajan Banka
+        </div>
+    </div>
+
+    <script>
+        let currentTemplateId = null;
+        let currentParams = [];
+        const currentTeam = '{{ current_team }}';
+
+        function changeTeam(teamName) {
+            window.location.href = '/metrics?team=' + encodeURIComponent(teamName);
+        }
+
+        function filterCategory(category) {
+            // Update active tab
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.category === category) {
+                    tab.classList.add('active');
+                }
+            });
+
+            // Filter templates
+            document.querySelectorAll('.template-card').forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function selectTemplate(templateId, name, description, params) {
+            currentTemplateId = templateId;
+            currentParams = params || [];
+
+            // Update selection UI
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('selected');
+                if (card.dataset.templateId === templateId) {
+                    card.classList.add('selected');
+                }
+            });
+
+            // Update result panel
+            document.getElementById('resultTitle').textContent = name;
+            document.getElementById('resultSubtitle').textContent = description;
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('metricResult').classList.remove('visible');
+
+            // Show/hide parameter form
+            const paramForm = document.getElementById('paramForm');
+            const paramInputs = document.getElementById('paramInputs');
+
+            if (currentParams.length > 0) {
+                paramInputs.innerHTML = '';
+                currentParams.forEach(param => {
+                    const row = document.createElement('div');
+                    row.className = 'param-row';
+
+                    let inputHtml = '';
+                    if (param === 'phase') {
+                        inputHtml = `
+                            <label>${formatParamName(param)}:</label>
+                            <select name="${param}" id="param_${param}">
+                                <option value="backlog">Backlog</option>
+                                <option value="in_analysis">In Analysis</option>
+                                <option value="in_dev">In Development</option>
+                                <option value="ready_for_sit">Ready for SIT</option>
+                                <option value="in_sit">In SIT</option>
+                                <option value="in_tpo_review">In TPO Review</option>
+                                <option value="done">Done</option>
+                            </select>
+                        `;
+                    } else if (param === 'min_days' || param === 'days') {
+                        inputHtml = `
+                            <label>${formatParamName(param)}:</label>
+                            <input type="number" name="${param}" id="param_${param}" value="3" min="1">
+                        `;
+                    } else {
+                        inputHtml = `
+                            <label>${formatParamName(param)}:</label>
+                            <input type="text" name="${param}" id="param_${param}" placeholder="Enter ${param}">
+                        `;
+                    }
+
+                    row.innerHTML = inputHtml;
+                    paramInputs.appendChild(row);
+                });
+                paramForm.classList.add('visible');
+            } else {
+                paramForm.classList.remove('visible');
+                // Auto-run if no params needed
+                runMetric();
+            }
+        }
+
+        function formatParamName(param) {
+            return param.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        async function runMetric() {
+            if (!currentTemplateId) return;
+
+            // Gather params
+            const params = {};
+            currentParams.forEach(param => {
+                const input = document.getElementById(`param_${param}`);
+                if (input) {
+                    params[param] = input.value;
+                }
+            });
+
+            // Show loading
+            document.getElementById('loadingIndicator').classList.add('visible');
+            document.getElementById('metricResult').classList.remove('visible');
+            document.getElementById('emptyState').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/metrics/build', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        template_id: currentTemplateId,
+                        team: currentTeam,
+                        params: params
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    displayMetricResult(data.metric);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error generating metric: ' + error.message);
+            } finally {
+                document.getElementById('loadingIndicator').classList.remove('visible');
+            }
+        }
+
+        function displayMetricResult(metric) {
+            document.getElementById('metricValue').textContent = metric.display_value;
+            document.getElementById('metricGenerated').textContent =
+                'Generated at ' + new Date(metric.generated_at).toLocaleString();
+
+            // Hide all result containers first
+            document.getElementById('distributionChart').style.display = 'none';
+            document.getElementById('resultTableContainer').style.display = 'none';
+
+            // Display based on metric type
+            if (metric.metric_type === 'distribution' && metric.details && metric.details.distribution) {
+                const valueField = metric.details.value_field || 'count';
+                displayDistribution(metric.details.distribution, valueField);
+            } else if (metric.metric_type === 'list' && metric.details && metric.details.items) {
+                displayTable(metric.details.items);
+            }
+
+            document.getElementById('metricResult').classList.add('visible');
+        }
+
+        function displayDistribution(distribution, valueField) {
+            const container = document.getElementById('distributionChart');
+            container.innerHTML = '';
+            container.style.display = 'block';
+
+            // Handle combined 'both' view specially
+            if (valueField === 'both') {
+                displayCombinedDistribution(distribution);
+                return;
+            }
+
+            // Determine primary metric based on value_field
+            const useStoryPoints = valueField === 'story_points';
+            const primaryKey = useStoryPoints ? 'story_points' : 'count';
+            const secondaryKey = useStoryPoints ? 'count' : 'story_points';
+            
+            // Find max for scaling
+            const maxValue = Math.max(...Object.values(distribution).map(d => d[primaryKey]));
+
+            for (const [key, data] of Object.entries(distribution)) {
+                const percentage = maxValue > 0 ? (data[primaryKey] / maxValue) * 100 : 0;
+                const bar = document.createElement('div');
+                bar.className = 'dist-bar';
+                
+                // Format display based on primary metric
+                let displayText;
+                if (useStoryPoints) {
+                    displayText = `${data.story_points} SP (${data.count} items)`;
+                } else {
+                    displayText = `${data.count} items (${data.story_points} SP)`;
+                }
+                
+                bar.innerHTML = `
+                    <span class="dist-label" title="${key}">${key}</span>
+                    <div class="dist-bar-container">
+                        <div class="dist-bar-fill" style="width: ${percentage}%"></div>
+                    </div>
+                    <span class="dist-value">${displayText}</span>
+                `;
+                container.appendChild(bar);
+            }
+        }
+
+        function displayCombinedDistribution(distribution) {
+            const container = document.getElementById('distributionChart');
+            
+            // Add header for combined view
+            const header = document.createElement('div');
+            header.style.cssText = 'display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 2px solid #e5e7eb; margin-bottom: 15px; font-weight: 600; color: #4b5563;';
+            header.innerHTML = `
+                <span style="width: 120px;">Phase</span>
+                <span style="flex: 1; text-align: center;">Items</span>
+                <span style="flex: 1; text-align: center;">Story Points</span>
+            `;
+            container.appendChild(header);
+
+            // Find max values for scaling
+            const maxCount = Math.max(...Object.values(distribution).map(d => d.count));
+            const maxSP = Math.max(...Object.values(distribution).map(d => d.story_points));
+
+            for (const [key, data] of Object.entries(distribution)) {
+                const countPct = maxCount > 0 ? (data.count / maxCount) * 100 : 0;
+                const spPct = maxSP > 0 ? (data.story_points / maxSP) * 100 : 0;
+                
+                const row = document.createElement('div');
+                row.style.cssText = 'display: flex; align-items: center; margin-bottom: 12px; gap: 10px;';
+                row.innerHTML = `
+                    <span class="dist-label" title="${key}" style="width: 120px;">${key}</span>
+                    <div style="flex: 1; display: flex; align-items: center; gap: 8px;">
+                        <div class="dist-bar-container" style="flex: 1; height: 20px;">
+                            <div class="dist-bar-fill" style="width: ${countPct}%; background: linear-gradient(90deg, #3b82f6, #60a5fa);"></div>
+                        </div>
+                        <span style="min-width: 50px; text-align: right; font-weight: 500;">${data.count}</span>
+                    </div>
+                    <div style="flex: 1; display: flex; align-items: center; gap: 8px;">
+                        <div class="dist-bar-container" style="flex: 1; height: 20px;">
+                            <div class="dist-bar-fill" style="width: ${spPct}%; background: linear-gradient(90deg, #10b981, #34d399);"></div>
+                        </div>
+                        <span style="min-width: 50px; text-align: right; font-weight: 500;">${data.story_points} SP</span>
+                    </div>
+                `;
+                container.appendChild(row);
+            }
+        }
+
+        function displayTable(items) {
+            const container = document.getElementById('resultTableContainer');
+            const thead = document.getElementById('resultTableHead');
+            const tbody = document.getElementById('resultTableBody');
+
+            thead.innerHTML = `
+                <tr>
+                    <th>Key</th>
+                    <th>Summary</th>
+                    <th>Assignee</th>
+                    <th>Status</th>
+                    <th>SP</th>
+                    <th>Days in Status</th>
+                </tr>
+            `;
+
+            tbody.innerHTML = '';
+
+            if (!items || items.length === 0) {
+                // Show "no items found" message
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="6" style="text-align: center; color: #6b7280; padding: 30px;">
+                        ✅ No items match the criteria - this is usually a good sign!
+                    </td>
+                `;
+                tbody.appendChild(row);
+            } else {
+                items.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="issue-key">${item.key}</td>
+                        <td>${item.summary.substring(0, 50)}${item.summary.length > 50 ? '...' : ''}</td>
+                        <td>${item.assignee}</td>
+                        <td>${item.status}</td>
+                        <td>${item.story_points}</td>
+                        <td>${item.days_in_status}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            container.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
+

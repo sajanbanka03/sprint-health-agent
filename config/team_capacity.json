@@ -1,0 +1,39 @@
+{
+  "teams": [
+    {
+      "team_name": "Team Thunder",
+      "default_capacity_sp": 8,
+      "members": {},
+      "historical_sprints": 5
+    },
+    {
+      "team_name": "Team Striker",
+      "default_capacity_sp": 8,
+      "members": {},
+      "historical_sprints": 5
+    },
+    {
+      "team_name": "Team Turbo",
+      "default_capacity_sp": 8,
+      "members": {},
+      "historical_sprints": 5
+    }
+  ],
+  "settings": {
+    "default_capacity_sp": 8,
+    "historical_sprints": 5,
+    "thresholds": {
+      "available": 50,
+      "optimal": 80,
+      "full": 100
+    }
+  },
+  "notes": [
+    "Capacity is measured in Story Points per sprint per person",
+    "Default capacity (8 SP) applies to members not explicitly listed",
+    "Add member-specific capacity by adding to the 'members' object: \"John Doe\": 10",
+    "This file is auto-updated when capacity is set via API"
+  ],
+  "last_updated": "2026-04-30T00:00:00"
+}
+

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Diagnostics - {{ current_team }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .diagnostics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .diagnostics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 1200px) {
+            .diagnostics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .module-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .module-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .module-header h2 {
+            margin: 0;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .module-badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        .module-badge.green { background: #d1fae5; color: #065f46; }
+        .module-badge.amber { background: #fef3c7; color: #92400e; }
+        .module-badge.red { background: #fee2e2; color: #991b1b; }
+        .module-content {
+            padding: 20px;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-color);
+            border-radius: 8px;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .risk-bar {
+            display: flex;
+            height: 24px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .risk-segment {
+            transition: width 0.3s;
+        }
+        .risk-segment.green { background: var(--success-color); }
+        .risk-segment.amber { background: var(--warning-color); }
+        .risk-segment.red { background: var(--danger-color); }
+        .risk-legend {
+            display: flex;
+            gap: 16px;
+            font-size: 0.85rem;
+        }
+        .risk-legend span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .risk-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .items-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+        }
+        .item-row.critical { background: #fee2e2; }
+        .item-row.warning { background: #fef3c7; }
+        .item-key {
+            font-family: monospace;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        .efficiency-gauge {
+            width: 200px;
+            height: 100px;
+            margin: 0 auto 16px;
+            position: relative;
+        }
+        .gauge-value {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .sentiment-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-color);
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .sentiment-emoji {
+            font-size: 2rem;
+        }
+        .pareto-chart {
+            height: 200px;
+        }
+        .quality-score {
+            font-size: 3rem;
+            font-weight: 700;
+            text-align: center;
+        }
+        .quality-grade {
+            font-size: 1.5rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+        .alert-banner {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert-banner.red {
+            background: #fee2e2;
+            border-left: 4px solid var(--danger-color);
+        }
+        .alert-banner.amber {
+            background: #fef3c7;
+            border-left: 4px solid var(--warning-color);
+        }
+        .metric-breakdown {
+            margin-top: 16px;
+        }
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="diagnostics-header">
+            <div>
+                <a href="/?team={{ current_team }}" class="back-link">← Back to Dashboard</a>
+                <h1>🔬 Advanced Diagnostics</h1>
+                <p style="color: var(--text-muted); margin: 4px 0 0 0;">
+                    {{ report.sprint_info.name }} - {{ current_team }}
+                </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <select onchange="changeTeam(this.value)" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+                    {% for team in teams %}
+                    <option value="{{ team.name }}" {% if team.name == current_team %}selected{% endif %}>
+                        {{ team.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <a href="/rte/team/{{ current_team }}" class="btn" style="background: #8b5cf6;">📊 RTE View</a>
+            </div>
+        </header>
+
+        <!-- Diagnostics Grid -->
+        <div class="diagnostics-grid">
+            <!-- Module 1: Aging WIP (SLE-Based Risk) -->
+            <div class="module-card">
+                <div class="module-header">
+                    <h2>⏱️ Aging WIP (SLE Risk)</h2>
+                    <span class="module-badge {{ 'green' if aging.total_red + aging.total_critical == 0 else ('amber' if aging.total_amber > aging.total_green else 'red') }}">
+                        {{ aging.total_active_items }} Active Items
+                    </span>
+                </div>
+                <div class="module-content">
+                    <!-- SLE Thresholds -->
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+                        85th Percentile SLE: <strong>{{ "%.1f"|format(aging.percentile_85_cycle_time) }} days</strong>
+                    </p>
+
+                    <!-- Risk Distribution Bar -->
+                    {% set total = aging.total_green + aging.total_amber + aging.total_red + aging.total_critical %}
+                    {% if total > 0 %}
+                    <div class="risk-bar">
+                        <div class="risk-segment green" style="width: {{ (aging.total_green / total * 100)|round(1) }}%"></div>
+                        <div class="risk-segment amber" style="width: {{ (aging.total_amber / total * 100)|round(1) }}%"></div>
+                        <div class="risk-segment red" style="width: {{ ((aging.total_red + aging.total_critical) / total * 100)|round(1) }}%"></div>
+                    </div>
+                    {% endif %}
+
+                    <div class="risk-legend">
+                        <span><span class="risk-dot" style="background: var(--success-color);"></span> Green: {{ aging.total_green }}</span>
+                        <span><span class="risk-dot" style="background: var(--warning-color);"></span> Amber: {{ aging.total_amber }}</span>
+                        <span><span class="risk-dot" style="background: var(--danger-color);"></span> Red: {{ aging.total_red + aging.total_critical }}</span>
+                    </div>
+
+                    <!-- Critical Items -->
+                    {% if aging.critical_items %}
+                    <h4 style="margin: 16px 0 8px 0; font-size: 0.9rem;">🚨 Critical Items (Over SLE)</h4>
+                    <div class="items-list">
+                        {% for item in aging.critical_items[:5] %}
+                        <div class="item-row critical">
+                            <span>
+                                <span class="item-key">{{ item.issue_key }}</span>
+                                <span style="color: var(--text-muted);">{{ item.summary[:30] }}...</span>
+                            </span>
+                            <span style="font-weight: 600; color: var(--danger-color);">
+                                {{ item.work_item_age_days }}d / {{ "%.0f"|format(item.sle_days) }}d SLE
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p style="text-align: center; padding: 20px; color: var(--success-color);">
+                        ✅ No items exceeding SLE threshold
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Module 2: Flow Efficiency -->
+            <div class="module-card">
+                <div class="module-header">
+                    <h2>🌊 Flow Efficiency</h2>
+                    <span class="module-badge {{ flow.alert_level }}">
+                        {{ "%.1f"|format(flow.team_flow_efficiency) }}%
+                    </span>
+                </div>
+                <div class="module-content">
+                    <!-- Alert if low efficiency -->
+                    {% if flow.alert_message %}
+                    <div class="alert-banner {{ flow.alert_level }}">
+                        <span>⚠️</span>
+                        <span>{{ flow.alert_message }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="stat-grid" style="grid-template-columns: repeat(3, 1fr);">
+                        <div class="stat-box">
+                            <div class="stat-value" style="color: var(--success-color);">{{ "%.0f"|format(flow.total_active_hours) }}h</div>
+                            <div class="stat-label">Active Work</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" style="color: var(--warning-color);">{{ "%.0f"|format(flow.total_passive_hours) }}h</div>
+                            <div class="stat-label">Wait Time</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">{{ "%.1f"|format(flow.wait_work_ratio) }}x</div>
+                            <div class="stat-label">Wait/Work Ratio</div>
+                        </div>
+                    </div>
+
+                    <!-- Bottleneck Statuses -->
+                    {% if flow.bottleneck_statuses %}
+                    <h4 style="margin: 16px 0 8px 0; font-size: 0.9rem;">🚧 Top Bottlenecks</h4>
+                    <div class="items-list">
+                        {% for status, hours, rec in flow.bottleneck_statuses[:3] %}
+                        <div class="item-row warning">
+                            <span>{{ status }}</span>
+                            <span style="font-weight: 600;">{{ "%.0f"|format(hours) }}h</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Module 3: Sentiment & Blockers -->
+            <div class="module-card">
+                <div class="module-header">
+                    <h2>💬 Sentiment & Blockers</h2>
+                    <span class="module-badge {{ 'red' if sentiment.team_sentiment.value == 'frustrated' else ('amber' if sentiment.team_sentiment.value == 'negative' else 'green') }}">
+                        {{ sentiment.team_sentiment.value | title }}
+                    </span>
+                </div>
+                <div class="module-content">
+                    <!-- Team Sentiment -->
+                    <div class="sentiment-indicator">
+                        <span class="sentiment-emoji">
+                            {% if sentiment.team_sentiment.value == 'positive' %}😊
+                            {% elif sentiment.team_sentiment.value == 'neutral' %}😐
+                            {% elif sentiment.team_sentiment.value == 'negative' %}😟
+                            {% else %}😤{% endif %}
+                        </span>
+                        <div>
+                            <strong>Team Sentiment: {{ sentiment.team_sentiment.value | title }}</strong>
+                            <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                                Trend: {{ sentiment.sentiment_trend }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Burnout Risks -->
+                    {% if sentiment.burnout_risk_count > 0 %}
+                    <div class="alert-banner red">
+                        <span>🔥</span>
+                        <span>{{ sentiment.burnout_risk_count }} burnout risk(s) detected</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Blocker Distribution -->
+                    <div class="stat-grid" style="grid-template-columns: repeat(2, 1fr);">
+                        <div class="stat-box">
+                            <div class="stat-value">{{ sentiment.total_blockers }}</div>
+                            <div class="stat-label">Total Blockers</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">{{ sentiment.top_root_cause.value if sentiment.top_root_cause else 'N/A' }}</div>
+                            <div class="stat-label">Top Cause</div>
+                        </div>
+                    </div>
+
+                    {% if sentiment.blocker_distribution %}
+                    <h4 style="margin: 16px 0 8px 0; font-size: 0.9rem;">📊 Blocker Pareto</h4>
+                    <div class="items-list">
+                        {% for dist in sentiment.blocker_distribution[:4] %}
+                        <div class="metric-row">
+                            <span>{{ dist.display_name }}</span>
+                            <span><strong>{{ dist.count }}</strong> ({{ "%.0f"|format(dist.percentage) }}%)</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Module 4: Quality & Tech Debt -->
+            <div class="module-card">
+                <div class="module-header">
+                    <h2>🛡️ Quality & Tech Debt</h2>
+                    <span class="module-badge {{ 'green' if quality.quality_grade in ['A', 'B'] else ('amber' if quality.quality_grade == 'C' else 'red') }}">
+                        Grade: {{ quality.quality_grade }}
+                    </span>
+                </div>
+                <div class="module-content">
+                    <!-- Quality Score -->
+                    <div style="text-align: center; margin-bottom: 16px;">
+                        <div class="quality-score" style="color: {{ 'var(--success-color)' if quality.quality_score >= 80 else ('var(--warning-color)' if quality.quality_score >= 60 else 'var(--danger-color)') }};">
+                            {{ "%.0f"|format(quality.quality_score) }}
+                        </div>
+                        <div class="quality-grade">Quality Score</div>
+                    </div>
+
+                    <!-- Alerts -->
+                    {% for alert in quality.alerts %}
+                    <div class="alert-banner {{ 'red' if '🔴' in alert else 'amber' }}">
+                        <span>{{ alert }}</span>
+                    </div>
+                    {% endfor %}
+
+                    <div class="stat-grid" style="grid-template-columns: repeat(2, 1fr);">
+                        <div class="stat-box">
+                            <div class="stat-value" style="color: {{ 'var(--success-color)' if quality.defect_metrics.leakage_rate < 10 else 'var(--danger-color)' }};">
+                                {{ "%.1f"|format(quality.defect_metrics.leakage_rate) }}%
+                            </div>
+                            <div class="stat-label">Defect Leakage</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" style="color: {{ 'var(--success-color)' if quality.sqale_metrics.technical_debt_ratio < 5 else 'var(--danger-color)' }};">
+                                {{ "%.1f"|format(quality.sqale_metrics.technical_debt_ratio) }}%
+                            </div>
+                            <div class="stat-label">Tech Debt Ratio</div>
+                        </div>
+                    </div>
+
+                    <!-- Defect Breakdown -->
+                    <div class="metric-breakdown">
+                        <div class="metric-row">
+                            <span>Total Defects</span>
+                            <span>{{ quality.defect_metrics.total_defects }}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Internal (Dev/SIT)</span>
+                            <span style="color: var(--success-color);">{{ quality.defect_metrics.internal_defects }}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>External (UAT/Prod)</span>
+                            <span style="color: var(--danger-color);">{{ quality.defect_metrics.external_defects }}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Remediation Hours</span>
+                            <span>{{ "%.0f"|format(quality.sqale_metrics.total_remediation_hours) }}h</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>Generated at {{ report.generated_at.strftime('%Y-%m-%d %H:%M') }} | Advanced Diagnostics 🔬 | By Sajan Banka</p>
+        </footer>
+    </div>
+
+    <script>
+        function changeTeam(teamName) {
+            window.location.href = '/diagnostics?team=' + encodeURIComponent(teamName);
+        }
+    </script>
+</body>
+</html>
+

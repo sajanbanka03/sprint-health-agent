@@ -1,0 +1,316 @@
+"""
+Sprint Health Agent - Web Dashboard
+Flask-based web interface for sprint health monitoring
+
+BACKUP CREATED: 2026-04-16
+Backup before implementing smart caching and loading indicator
+"""
+import json
+from datetime import datetime
+from pathlib import Path
+from dataclasses import asdict
+from flask import Flask, render_template, jsonify, request
+
+from src.utils import load_config, PROJECT_ROOT, HISTORY_DIR
+from src.jira_client import JiraClient
+from src.analyzer import SprintAnalyzer
+from src.models import Phase, HealthStatus
+
+app = Flask(__name__,
+            template_folder='templates',
+            static_folder='static')
+
+
+def get_teams_list():
+    """Get list of all configured teams"""
+    config = load_config()
+    return config.get('teams', [])
+
+
+def get_default_team():
+    """Get default team name"""
+    config = load_config()
+    return config.get('default_team', '')
+
+
+def get_report(team_name: str = None):
+    """Get current sprint health report"""
+    config = load_config()
+
+    # Get team configuration
+    teams = config.get('teams', [])
+    default_team = config.get('default_team', '')
+
+    # Find the team to use
+    target_team = team_name or default_team
+    team_config = None
+
+    for team in teams:
+        if team.get('name') == target_team:
+            team_config = team
+            break
+
+    # If no team found, use the first team
+    if not team_config and teams:
+        team_config = teams[0]
+
+    # Merge team's board_id and sprint_id into jira config
+    if team_config:
+        if 'jira' not in config:
+            config['jira'] = {}
+        config['jira']['board_id'] = team_config.get('board_id')
+        config['jira']['sprint_id'] = team_config.get('sprint_id')
+
+    jira = JiraClient(config)
+    analyzer = SprintAnalyzer(config, jira)
+    report = analyzer.analyze_sprint()
+
+    # Attach team name to report for display
+    report.team_name = team_config.get('name', 'Unknown') if team_config else 'Unknown'
+
+    return report
+
+
+def get_all_teams_reports():
+    """Get reports for all configured teams"""
+    config = load_config()
+    teams = config.get('teams', [])
+
+    team_reports = []
+
+    for team in teams:
+        try:
+            # Create team-specific config
+            team_config = config.copy()
+            if 'jira' not in team_config:
+                team_config['jira'] = {}
+            team_config['jira'] = config.get('jira', {}).copy()
+            team_config['jira']['board_id'] = team.get('board_id')
+            team_config['jira']['sprint_id'] = team.get('sprint_id')
+
+            jira = JiraClient(team_config)
+            analyzer = SprintAnalyzer(team_config, jira)
+            report = analyzer.analyze_sprint()
+            report.team_name = team.get('name', 'Unknown')
+
+            team_reports.append({
+                'name': team.get('name'),
+                'report': report,
+                'error': None
+            })
+        except Exception as e:
+            team_reports.append({
+                'name': team.get('name'),
+                'report': None,
+                'error': str(e)
+            })
+
+    return team_reports
+
+
+def serialize_chart_data(chart_data):
+    """Convert chart data to JSON-serializable format"""
+    if not chart_data:
+        return None
+
+    return {
+        'sprint_name': chart_data.sprint_name,
+        'start_date': chart_data.start_date,
+        'end_date': chart_data.end_date,
+        'total_days': chart_data.total_days,
+        'current_day': chart_data.current_day,
+        'data_points': [
+            {
+                'date': dp.date,
+                'day_number': dp.day_number,
+                'completed_points': dp.completed_points,
+                'remaining_points': dp.remaining_points,
+                'total_scope': dp.total_scope,
+                'ideal_remaining': dp.ideal_remaining,
+                'ideal_completed': dp.ideal_completed
+            }
+            for dp in chart_data.data_points
+        ],
+        'scope_changes': chart_data.scope_changes
+    }
+
+
+@app.route('/')
+def dashboard():
+    """Main dashboard page"""
+    try:
+        # Get team from URL parameter
+        team_name = request.args.get('team')
+
+        report = get_report(team_name)
+
+        # Serialize chart data for JavaScript
+        if hasattr(report, 'chart_data') and report.chart_data:
+            report.chart_data_json = serialize_chart_data(report.chart_data)
+
+        # Get list of all teams for dropdown
+        teams = get_teams_list()
+        current_team = report.team_name if hasattr(report, 'team_name') else get_default_team()
+
+        return render_template('dashboard.html',
+                             report=report,
+                             teams=teams,
+                             current_team=current_team,
+                             view_mode='single')
+    except Exception as e:
+        import traceback
+        traceback.print_exc()  # Print full traceback to console
+        return render_template('error.html', error=str(e))
+
+
+@app.route('/all')
+def dashboard_all_teams():
+    """All teams dashboard view"""
+    try:
+        team_reports = get_all_teams_reports()
+        teams = get_teams_list()
+
+        return render_template('dashboard_all.html',
+                             team_reports=team_reports,
+                             teams=teams,
+                             view_mode='all')
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return render_template('error.html', error=str(e))
+
+
+@app.route('/api/health')
+def api_health():
+    """API endpoint for sprint health data"""
+    try:
+        report = get_report()
+
+        return jsonify({
+            'status': 'success',
+            'generated_at': report.generated_at.isoformat(),
+            'sprint': {
+                'id': report.sprint_info.id,
+                'name': report.sprint_info.name,
+                'days_elapsed': report.sprint_info.days_elapsed,
+                'days_remaining': report.sprint_info.days_remaining,
+                'total_days': report.sprint_info.total_days
+            },
+            'metrics': {
+                'total_story_points': report.metrics.total_story_points,
+                'completed_story_points': report.metrics.completed_story_points,
+                'remaining_story_points': report.metrics.remaining_story_points,
+                'completion_percentage': report.metrics.completion_percentage_by_points
+            },
+            'velocity': {
+                'daily_velocity': report.velocity.daily_velocity,
+                'completion_probability': report.velocity.completion_probability,
+                'required_velocity': report.velocity.required_velocity
+            },
+            'health_status': report.health_status.value,
+            'stuck_summary': {
+                'total_count': report.stuck_summary.total_stuck_count,
+                'total_points': report.stuck_summary.total_stuck_points,
+                'items': [
+                    {
+                        'key': i.key,
+                        'summary': i.summary,
+                        'status': i.status,
+                        'days': i.days_in_current_status,
+                        'assignee': i.assignee
+                    }
+                    for i in report.stuck_summary.most_critical_items[:10]
+                ]
+            },
+            'phase_breakdown': [
+                {
+                    'phase': pm.phase.value,
+                    'display_name': pm.phase_display_name,
+                    'count': pm.issue_count,
+                    'points': pm.story_points,
+                    'percentage': pm.percentage_of_total,
+                    'stuck_count': pm.stuck_count
+                }
+                for pm in report.phase_breakdown
+            ],
+            'recommendations': [
+                {
+                    'priority': r.priority,
+                    'category': r.category,
+                    'message': r.message
+                }
+                for r in report.recommendations
+            ]
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+
+@app.route('/api/history/<int:sprint_id>')
+def api_history(sprint_id):
+    """API endpoint for sprint history data"""
+    try:
+        history = []
+
+        if HISTORY_DIR.exists():
+            for filepath in HISTORY_DIR.glob(f"sprint_{sprint_id}_*.json"):
+                with open(filepath, 'r') as f:
+                    history.append(json.load(f))
+
+        history = sorted(history, key=lambda x: x.get('date', ''))
+
+        return jsonify({
+            'status': 'success',
+            'sprint_id': sprint_id,
+            'history': history
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+
+@app.route('/api/stuck-items')
+def api_stuck_items():
+    """API endpoint for detailed stuck items"""
+    try:
+        report = get_report()
+
+        stuck_by_phase = {}
+        for phase, issues in report.stuck_summary.stuck_by_phase.items():
+            stuck_by_phase[phase.value] = [
+                {
+                    'key': i.key,
+                    'summary': i.summary,
+                    'status': i.status,
+                    'days_in_status': i.days_in_current_status,
+                    'days_overdue': i.days_overdue,
+                    'assignee': i.assignee,
+                    'story_points': i.story_points,
+                    'priority': i.priority
+                }
+                for i in issues
+            ]
+
+        return jsonify({
+            'status': 'success',
+            'total_stuck': report.stuck_summary.total_stuck_count,
+            'stuck_by_phase': stuck_by_phase
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+
+if __name__ == '__main__':
+    print("🏃 Sprint Health Dashboard")
+    print("   Open http://localhost:5000 in your browser")
+    print("   Press Ctrl+C to stop\n")
+    app.run(debug=True, host='0.0.0.0', port=5000)
+

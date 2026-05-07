@@ -1,0 +1,44 @@
+# Ignore config with secrets
+config/config.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Data files (keep structure, ignore data)
+data/sprint_history/*.json
+data/sprint_snapshots/*.json
+
+# Generated reports
+reports/*.html
+
+# Backup files
+*.backup
+*.bak
+backups/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+
+# Debug scripts
+debug_*.py

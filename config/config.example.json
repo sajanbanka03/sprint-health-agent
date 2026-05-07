@@ -1,0 +1,144 @@
+{
+    "_comment": "Sprint Health Agent Configuration - Example File",
+    "_instructions": "Copy this file to config.json and update with your values",
+
+    "jira": {
+        "_comment": "=== JIRA CONNECTION SETTINGS ===",
+
+        "url": "https://jiraagile.emirates.com",
+
+        "_auth_comment": "Choose ONE authentication method below:",
+
+        "_method1": "=== OPTION 1: Username/Password (for Emirates Intranet) ===",
+        "auth_method": "basic",
+        "username": "YOUR_EMPLOYEE_ID",
+        "password": "YOUR_PASSWORD",
+
+        "_method2": "=== OPTION 2: API Token (for Atlassian Cloud) ===",
+        "_email": "your-email@company.com",
+        "_api_token": "YOUR_API_TOKEN",
+
+        "_ssl_comment": "Set to false for corporate self-signed certificates",
+        "verify_ssl": false,
+
+        "_fields_comment": "Custom field IDs (check your Jira instance)",
+        "project_key": "RESMYB",
+        "story_point_field": "customfield_10002",
+        "sprint_field": "customfield_10020"
+    },
+
+    "_teams_comment": "=== TEAM CONFIGURATION ===",
+    "_teams_instructions": "Add your teams here. Each team needs a name and either board_id OR will be auto-detected from project_key",
+
+    "teams": [
+        {
+            "name": "Team Thunder",
+            "board_id": 25399,
+            "sprint_id": null,
+            "_note": "Set sprint_id to null to auto-detect active sprint, or specify a sprint ID"
+        },
+        {
+            "name": "Team Striker",
+            "board_id": 25456,
+            "sprint_id": null
+        }
+    ],
+
+    "default_team": "Team Thunder",
+
+    "_phases_comment": "=== WORKFLOW PHASES MAPPING ===",
+    "_phases_instructions": "Map your Jira statuses to phases. Add all status names your team uses.",
+
+    "phases": {
+        "backlog": ["Open", "To Do", "Backlog"],
+        "in_analysis": ["In Analysis", "Refinement", "Analysis"],
+        "in_dev": ["In Development", "In Progress", "In Dev", "Development"],
+        "ready_for_sit": ["Ready for SIT", "Dev Complete", "Ready for Testing"],
+        "in_sit": ["In SIT", "In Testing", "SIT", "Testing"],
+        "in_tpo_review": ["In TPO Review", "In Review", "Review", "TPO Review"],
+        "done": ["Done", "Closed", "Resolved", "Complete"]
+    },
+
+    "_stuck_comment": "=== STUCK THRESHOLDS ===",
+    "_stuck_instructions": "Days in status before an item is marked as 'stuck'",
+
+    "stuck_thresholds_days": {
+        "in_analysis": 2,
+        "in_dev": 3,
+        "ready_for_sit": 2,
+        "in_sit": 2,
+        "in_tpo_review": 2
+    },
+
+    "_notifications_comment": "=== NOTIFICATIONS (Optional) ===",
+
+    "notifications": {
+        "enabled": false,
+        "platform": "teams",
+
+        "teams": {
+            "_instructions": "Create an Incoming Webhook in your Teams channel",
+            "webhook_url": "https://outlook.office.com/webhook/YOUR_WEBHOOK_URL",
+            "mention_scrum_master": true,
+            "scrum_master_email": "scrum.master@company.com"
+        },
+
+        "slack": {
+            "_instructions": "Create a Slack App and get Bot Token",
+            "bot_token": "xoxb-YOUR-SLACK-BOT-TOKEN",
+            "channel": "#sprint-health"
+        }
+    },
+
+    "_schedule_comment": "=== SCHEDULED REPORTS ===",
+
+    "schedule": {
+        "enabled": false,
+        "time": "09:00",
+        "timezone": "Asia/Dubai",
+        "days": ["monday", "tuesday", "wednesday", "thursday", "friday"]
+    },
+
+    "_thresholds_comment": "=== HEALTH THRESHOLDS ===",
+
+    "thresholds": {
+        "completion_probability_warning": 70,
+        "completion_probability_critical": 50
+    },
+
+    "_wip_comment": "=== WIP LIMITS (Optional) ===",
+
+    "wip_limits": {
+        "enabled": false,
+        "in_dev": 5,
+        "in_sit": 4
+    },
+
+    "_ml_comment": "=== ML PREDICTIONS ===",
+
+    "historical_sprints": 5,
+
+    "ml_predictions": {
+        "enabled": true,
+        "monte_carlo_simulations": 1000,
+        "confidence_levels": [50, 75, 90]
+    },
+
+    "_charts_comment": "=== CHART SETTINGS ===",
+
+    "charts": {
+        "type": "both",
+        "show_burndown": true,
+        "show_burnup": true,
+        "show_scope_changes": true
+    },
+
+    "_report_comment": "=== REPORT SETTINGS ===",
+
+    "report": {
+        "include_assignee": true,
+        "include_story_points": true,
+        "include_recommendations": true,
+        "max_stuck_items_display": 20
+    }
+}
